@@ -1,9 +1,9 @@
 {
-  "name": "@privacyresearch/libsignal-protocol-typescript",
+  "name": "@wppconnect/libsignal-protocol",
   "version": "0.0.16",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
-  "repository": "https://github.com/privacyresearchgroup/libsignal-protocol-typescript",
+  "repository": "https://github.com/wppconnect-team/libsignal-protocol",
   "author": "Rolfe Schmidt <rolfeschmidt@gmail.com>",
   "license": "GPL-3.0-only",
   "scripts": {
