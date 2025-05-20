@@ -1,7 +1,6 @@
 import { FingerprintGeneratorType } from './'
 import * as utils from './helpers'
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const msrcrypto = require('../lib/msrcrypto')
+import { webcrypto } from 'crypto'
 
 export class FingerprintGenerator implements FingerprintGeneratorType {
     static VERSION = 0
@@ -44,7 +43,7 @@ async function getDisplayStringFor(identifier: string, key: ArrayBuffer, iterati
 
 async function iterateHash(data: ArrayBuffer, key: ArrayBuffer, count: number): Promise<ArrayBuffer> {
     const data1 = concatArrayBuffers([data, key])
-    const result = await msrcrypto.subtle.digest({ name: 'SHA-512' }, data1)
+    const result = await webcrypto.subtle.digest({ name: 'SHA-512' }, data1)
 
     if (--count === 0) {
         return result

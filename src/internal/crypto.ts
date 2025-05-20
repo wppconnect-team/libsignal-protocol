@@ -2,20 +2,18 @@ import * as Internal from '.'
 import * as util from '../helpers'
 import { KeyPairType } from '../types'
 import { AsyncCurve as AsyncCurveType } from '@privacyresearch/curve25519-typescript'
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const webcrypto = globalThis?.crypto || require('../../lib/msrcrypto') // globalThis?.crypto || window?.crypto || require('../../lib/msrcrypto')
+import { webcrypto } from 'crypto'
 
 export class Crypto {
     private _curve: Internal.AsyncCurve
-    private _webcrypto: globalThis.Crypto
+    private _webcrypto: webcrypto.Crypto
 
-    constructor(crypto?: globalThis.Crypto) {
+    constructor(crypto?: webcrypto.Crypto) {
         this._curve = new Internal.AsyncCurve()
         this._webcrypto = crypto || webcrypto
     }
 
-    set webcrypto(wc: globalThis.Crypto) {
+    set webcrypto(wc: webcrypto.Crypto) {
         this._webcrypto = wc
     }
     set curve(c: AsyncCurveType) {
@@ -103,7 +101,7 @@ export class Crypto {
 
 export const crypto = new Crypto()
 
-export function setWebCrypto(webcrypto: globalThis.Crypto): void {
+export function setWebCrypto(webcrypto: webcrypto.Crypto): void {
     crypto.webcrypto = webcrypto
 }
 
