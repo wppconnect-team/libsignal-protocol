@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
-import base64 from 'base64-js'
+import { arrayBufferToBase64, base64ToArrayBuffer } from './helpers'
 
 import * as util from './helpers'
 import { KeyPairType } from './types'
@@ -272,10 +272,10 @@ export class SessionRecord implements RecordType {
 
 // Serialization helpers
 function toAB(s: string): ArrayBuffer {
-    return util.uint8ArrayToArrayBuffer(base64.toByteArray(s))
+    return base64ToArrayBuffer(s)
 }
 function abToS(b: ArrayBuffer): string {
-    return base64.fromByteArray(new Uint8Array(b))
+    return arrayBufferToBase64(b)
 }
 
 export function keyPairStirngToArrayBuffer(kp: KeyPairType<string>): KeyPairType<ArrayBuffer> {
@@ -320,7 +320,7 @@ export function chainStringToArrayBuffer(c: Chain<string>): Chain<ArrayBuffer> {
     return {
         chainType,
         chainKey: {
-            key: key ? util.uint8ArrayToArrayBuffer(base64.toByteArray(key)) : undefined,
+            key: key ? base64ToArrayBuffer(key) : undefined,
             counter,
         },
         messageKeys: newMessageKeys,

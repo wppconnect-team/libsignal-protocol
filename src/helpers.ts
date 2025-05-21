@@ -47,3 +47,22 @@ export function isEqual(a: ArrayBuffer | undefined, b: ArrayBuffer | undefined):
 export function uint8ArrayToArrayBuffer(arr: Uint8Array): ArrayBuffer {
     return arr.buffer.slice(arr.byteOffset, arr.byteLength + arr.byteOffset)
 }
+
+/**
+ * Converts a base64 string to an ArrayBuffer using Node.js Buffer.
+ * @param b64 base64 encoded string
+ * @returns ArrayBuffer
+ */
+export function base64ToArrayBuffer(b64: string): ArrayBuffer {
+    const buf = Buffer.from(b64, 'base64')
+    return uint8ArrayToArrayBuffer(buf)
+}
+
+/**
+ * Converts an ArrayBuffer to a base64 string using Node.js Buffer.
+ * @param buffer ArrayBuffer
+ * @returns base64 encoded string
+ */
+export function arrayBufferToBase64(buffer: ArrayBuffer): string {
+    return Buffer.from(buffer).toString('base64')
+}

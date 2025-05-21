@@ -2,7 +2,6 @@ import { StorageType, Direction } from './types'
 import { Chain, ChainType, SessionType } from './session-types'
 import { SignalProtocolAddress } from './signal-protocol-address'
 import { PreKeySignalMessage, SignalMessage } from './protos'
-import * as base64 from 'base64-js'
 import * as util from './helpers'
 import * as Internal from './internal'
 
@@ -10,6 +9,7 @@ import { SessionRecord } from './session-record'
 import { SessionLock } from './session-lock'
 import { SessionBuilder } from './session-builder'
 import { uint8ArrayToArrayBuffer } from './helpers'
+import { arrayBufferToBase64 } from './helpers'
 
 export interface MessageType {
     type: number
@@ -144,7 +144,7 @@ export class SessionCipher {
         }
 
         msg.ratchetKey = new Uint8Array(session.currentRatchet.ephemeralKeyPair.pubKey)
-        const searchKey = base64.fromByteArray(msg.ratchetKey)
+        const searchKey = arrayBufferToBase64(msg.ratchetKey)
 
         const chain = session.chains[searchKey]
         if (chain?.chainType === ChainType.RECEIVING) {
@@ -194,13 +194,13 @@ export class SessionCipher {
         }
         const sharedSecret = await Internal.crypto.ECDHE(remoteKey, ratchet.ephemeralKeyPair.privKey)
         const masterKey = await Internal.HKDF(sharedSecret, ratchet.rootKey, 'WhisperRatchet')
-        let ephemeralPublicKey
+        let ephemeralPublicKey: ArrayBuffer
         if (sending) {
             ephemeralPublicKey = ratchet.ephemeralKeyPair.pubKey
         } else {
             ephemeralPublicKey = remoteKey
         }
-        session.chains[base64.fromByteArray(new Uint8Array(ephemeralPublicKey))] = {
+        session.chains[arrayBufferToBase64(ephemeralPublicKey)] = {
             messageKeys: {},
             chainKey: { counter: -1, key: masterKey[1] },
             chainType: sending ? ChainType.SENDING : ChainType.RECEIVING,
@@ -241,8 +241,8 @@ export class SessionCipher {
             const session = record.getSessionByBaseKey(uint8ArrayToArrayBuffer(preKeyProto.baseKey!))
             if (!session) {
                 throw new Error(
-                    `unable to find session for base key ${base64.fromByteArray(preKeyProto.baseKey!)}, ${
-                        preKeyProto.baseKey!.byteLength
+                    `unable to find session for base key ${
+                        (arrayBufferToBase64(preKeyProto.baseKey!), preKeyProto.baseKey!.byteLength)
                     }`
                 )
             }
@@ -349,9 +349,9 @@ export class SessionCipher {
 
         await this.maybeStepRatchet(session, remoteEphemeralKey, message.previousCounter!)
 
-        const chain = session.chains[base64.fromByteArray(message.ratchetKey!)]
+        const chain = session.chains[arrayBufferToBase64(message.ratchetKey!)]
         if (!chain) {
-            console.warn(`no chain found for key`, { key: base64.fromByteArray(message.ratchetKey!), session })
+            console.warn(`no chain found for key`, { key: arrayBufferToBase64(message.ratchetKey!), session })
         }
         if (chain?.chainType === ChainType.SENDING) {
             throw new Error('Tried to decrypt on a sending chain')
@@ -392,7 +392,7 @@ export class SessionCipher {
     }
 
     async maybeStepRatchet(session: SessionType, remoteKey: ArrayBuffer, previousCounter: number): Promise<void> {
-        const remoteKeyString = base64.fromByteArray(new Uint8Array(remoteKey))
+        const remoteKeyString = arrayBufferToBase64(remoteKey)
         if (session.chains[remoteKeyString] !== undefined) {
             return Promise.resolve()
         }
@@ -401,7 +401,7 @@ export class SessionCipher {
         if (!ratchet.ephemeralKeyPair) {
             throw new Error(`attempting to step reatchet without ephemeral key`)
         }
-        const previousRatchet = session.chains[base64.fromByteArray(new Uint8Array(ratchet.lastRemoteEphemeralKey))]
+        const previousRatchet = session.chains[arrayBufferToBase64(ratchet.lastRemoteEphemeralKey)]
         if (previousRatchet !== undefined) {
             await this.fillMessageKeys(previousRatchet, previousCounter).then(function () {
                 delete previousRatchet.chainKey.key
@@ -413,7 +413,7 @@ export class SessionCipher {
         }
 
         await this.calculateRatchet(session, remoteKey, false)
-        const previousRatchetKey = base64.fromByteArray(new Uint8Array(ratchet.ephemeralKeyPair.pubKey))
+        const previousRatchetKey = arrayBufferToBase64(ratchet.ephemeralKeyPair.pubKey)
         if (session.chains[previousRatchetKey] !== undefined) {
             ratchet.previousCounter = session.chains[previousRatchetKey].chainKey.counter
             delete session.chains[previousRatchetKey]

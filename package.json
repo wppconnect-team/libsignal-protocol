@@ -37,8 +37,7 @@
   },
   "dependencies": {
     "@bufbuild/protobuf": "^2.4.0",
-    "@privacyresearch/curve25519-typescript": "^0.0.12",
-    "base64-js": "^1.5.1"
+    "@privacyresearch/curve25519-typescript": "^0.0.12"
   },
   "files": [
     "lib/*.js",

@@ -2,11 +2,11 @@ import { SignalProtocolAddressType, StorageType, Direction, KeyPairType } from '
 import { DeviceType, SessionType, BaseKeyType, ChainType } from './session-types'
 
 import * as Internal from './internal'
-import * as base64 from 'base64-js'
 import { SessionRecord } from './session-record'
 import { PreKeySignalMessage } from './protos'
 import { SessionLock } from './session-lock'
 import { uint8ArrayToArrayBuffer } from './helpers'
+import { arrayBufferToBase64 } from './helpers'
 
 export class SessionBuilder {
     remoteAddress: SignalProtocolAddressType
@@ -231,7 +231,7 @@ export class SessionBuilder {
 
         const ephPrivKey = ratchet.ephemeralKeyPair.privKey
         const rootKey = ratchet.rootKey
-        const ephPubKey = base64.fromByteArray(new Uint8Array(ratchet.ephemeralKeyPair.pubKey))
+        const ephPubKey = arrayBufferToBase64(ratchet.ephemeralKeyPair.pubKey)
         if (!(ephPrivKey && ephPubKey && rootKey)) {
             throw new Error(`Missing key, cannot calculate sending ratchet`)
         }
