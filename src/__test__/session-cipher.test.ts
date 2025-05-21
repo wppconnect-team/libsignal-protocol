@@ -11,13 +11,12 @@ import { TestVectors } from './testvectors'
 import * as Internal from '../internal'
 import { KeyPairType } from '../types'
 import * as utils from '../helpers'
+import { PreKeySignalMessage, SignalMessage } from '../protos'
 import {
-    PreKeyWhisperMessage,
-    PushMessageContentCompatible as PushMessageContent,
+    PushMessageContent,
     IncomingPushMessageSignal_Type,
     PushMessageContent_Flags,
-    WhisperMessage,
-} from '@privacyresearch/libsignal-protocol-protobuf-ts'
+} from '../__test-utils__/PushMessages'
 import { BaseKeyType } from '../session-types'
 
 const tv = TestVectors()
@@ -256,23 +255,23 @@ async function doSendStep(
             //      msg: msgbody,
             //  })
 
-            const ourpkwmsg = PreKeyWhisperMessage.decode(msgbody)
-            const datapkwmsg = PreKeyWhisperMessage.decode(new Uint8Array(data.expectedCiphertext).slice(1))
+            const ourpkwmsg = PreKeySignalMessage.decode(msgbody)
+            const datapkwmsg = PreKeySignalMessage.decode(new Uint8Array(data.expectedCiphertext).slice(1))
 
-            assertEqualUint8Arrays(datapkwmsg.baseKey, ourpkwmsg.baseKey)
-            assertEqualUint8Arrays(datapkwmsg.identityKey, ourpkwmsg.identityKey)
+            assertEqualUint8Arrays(datapkwmsg.baseKey!, ourpkwmsg.baseKey!)
+            assertEqualUint8Arrays(datapkwmsg.identityKey!, ourpkwmsg.identityKey!)
             expect(datapkwmsg.preKeyId).toStrictEqual(ourpkwmsg.preKeyId)
             expect(datapkwmsg.signedPreKeyId).toStrictEqual(ourpkwmsg.signedPreKeyId)
 
-            const ourencrypted = WhisperMessage.decode(ourpkwmsg.message.slice(1, ourpkwmsg.message.length - 8))
-            const dataencrypted = WhisperMessage.decode(datapkwmsg.message.slice(1, datapkwmsg.message.length - 8))
+            const ourencrypted = SignalMessage.decode(ourpkwmsg.message!.slice(1, ourpkwmsg.message!.length - 8))
+            const dataencrypted = SignalMessage.decode(datapkwmsg.message!.slice(1, datapkwmsg.message!.length - 8))
 
             expect(ourencrypted.counter).toBe(dataencrypted.counter)
             expect(ourencrypted.previousCounter).toBe(dataencrypted.previousCounter)
-            assertEqualUint8Arrays(ourencrypted.ephemeralKey, dataencrypted.ephemeralKey)
-            assertEqualUint8Arrays(ourencrypted.ciphertext, dataencrypted.ciphertext)
+            assertEqualUint8Arrays(ourencrypted.ratchetKey!, dataencrypted.ratchetKey!)
+            assertEqualUint8Arrays(ourencrypted.ciphertext!, dataencrypted.ciphertext!)
 
-            const expected = PreKeyWhisperMessage.encode(datapkwmsg).finish()
+            const expected = PreKeySignalMessage.encode(datapkwmsg).finish()
 
             if (
                 !utils.isEqual(

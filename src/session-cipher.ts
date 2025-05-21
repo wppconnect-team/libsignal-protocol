@@ -1,7 +1,7 @@
 import { StorageType, Direction } from './types'
 import { Chain, ChainType, SessionType } from './session-types'
 import { SignalProtocolAddress } from './signal-protocol-address'
-import { PreKeyWhisperMessage, WhisperMessage } from '@privacyresearch/libsignal-protocol-protobuf-ts'
+import { PreKeySignalMessage, SignalMessage } from './protos'
 import * as base64 from 'base64-js'
 import * as util from './helpers'
 import * as Internal from './internal'
@@ -41,7 +41,7 @@ export class SessionCipher {
         }
 
         const address = this.remoteAddress.toString()
-        const msg = WhisperMessage.fromJSON({})
+        const msg = SignalMessage.fromJSON({})
         const [ourIdentityKey, myRegistrationId, record] = await this.loadKeysAndRecord(address)
         if (!record) {
             throw new Error('No record for ' + address)
@@ -67,7 +67,7 @@ export class SessionCipher {
 
         const ciphertext = await Internal.crypto.encrypt(keys[0], buffer, keys[2].slice(0, 16))
         msg.ciphertext = new Uint8Array(ciphertext)
-        const encodedMsg = WhisperMessage.encode(msg).finish()
+        const encodedMsg = SignalMessage.encode(msg).finish()
 
         const macInput = new Uint8Array(encodedMsg.byteLength + 33 * 2 + 1)
         macInput.set(new Uint8Array(ourIdentityKey.pubKey))
@@ -96,7 +96,7 @@ export class SessionCipher {
         await this.storage.storeSession(address, record.serialize())
 
         if (session.pendingPreKey !== undefined) {
-            const preKeyMsg = PreKeyWhisperMessage.fromJSON({})
+            const preKeyMsg = PreKeySignalMessage.fromJSON({})
             preKeyMsg.identityKey = new Uint8Array(ourIdentityKey.pubKey)
 
             // TODO: for some test vectors there is no registration id. Why?
@@ -110,7 +110,7 @@ export class SessionCipher {
             preKeyMsg.signedPreKeyId = session.pendingPreKey.signedKeyId
 
             preKeyMsg.message = encodedMsgWithMAC
-            const encodedPreKeyMsg = PreKeyWhisperMessage.encode(preKeyMsg).finish()
+            const encodedPreKeyMsg = PreKeySignalMessage.encode(preKeyMsg).finish()
             const result = String.fromCharCode((3 << 4) | 3) + util.uint8ArrayToString(encodedPreKeyMsg)
             return {
                 type: 3,
@@ -134,7 +134,7 @@ export class SessionCipher {
         ])
     }
 
-    private prepareChain = async (address: string, record: SessionRecord, msg: WhisperMessage) => {
+    private prepareChain = async (address: string, record: SessionRecord, msg: SignalMessage) => {
         const session = record.getOpenSession()
         if (!session) {
             throw new Error('No session to encrypt message for ' + address)
@@ -143,8 +143,8 @@ export class SessionCipher {
             throw new Error(`ratchet missing ephemeralKeyPair`)
         }
 
-        msg.ephemeralKey = new Uint8Array(session.currentRatchet.ephemeralKeyPair.pubKey)
-        const searchKey = base64.fromByteArray(msg.ephemeralKey)
+        msg.ratchetKey = new Uint8Array(session.currentRatchet.ephemeralKeyPair.pubKey)
+        const searchKey = base64.fromByteArray(msg.ratchetKey)
 
         const chain = session.chains[searchKey]
         if (chain?.chainType === ChainType.RECEIVING) {
@@ -227,7 +227,7 @@ export class SessionCipher {
         const address = this.remoteAddress.toString()
         const job = async () => {
             let record = await this.getRecord(address)
-            const preKeyProto = PreKeyWhisperMessage.decode(messageData)
+            const preKeyProto = PreKeySignalMessage.decode(messageData)
             if (!record) {
                 if (preKeyProto.registrationId === undefined) {
                     throw new Error('No registrationId')
@@ -238,15 +238,15 @@ export class SessionCipher {
 
             // isTrustedIdentity is called within processV3, no need to call it here
             const preKeyId = await builder.processV3(record, preKeyProto)
-            const session = record.getSessionByBaseKey(uint8ArrayToArrayBuffer(preKeyProto.baseKey))
+            const session = record.getSessionByBaseKey(uint8ArrayToArrayBuffer(preKeyProto.baseKey!))
             if (!session) {
                 throw new Error(
-                    `unable to find session for base key ${base64.fromByteArray(preKeyProto.baseKey)}, ${
-                        preKeyProto.baseKey.byteLength
+                    `unable to find session for base key ${base64.fromByteArray(preKeyProto.baseKey!)}, ${
+                        preKeyProto.baseKey!.byteLength
                     }`
                 )
             }
-            const plaintext = await this.doDecryptWhisperMessage(preKeyProto.message, session)
+            const plaintext = await this.doDecryptWhisperMessage(preKeyProto.message!, session)
             record.updateSessionState(session)
             await this.storage.storeSession(address, record.serialize())
             if (preKeyId !== undefined && preKeyId !== null) {
@@ -335,8 +335,8 @@ export class SessionCipher {
         const messageProto = messageBytes.slice(1, messageBytes.byteLength - 8)
         const mac = messageBytes.slice(messageBytes.byteLength - 8, messageBytes.byteLength)
 
-        const message = WhisperMessage.decode(new Uint8Array(messageProto))
-        const remoteEphemeralKey = uint8ArrayToArrayBuffer(message.ephemeralKey)
+        const message = SignalMessage.decode(new Uint8Array(messageProto))
+        const remoteEphemeralKey = uint8ArrayToArrayBuffer(message.ratchetKey!)
 
         if (session === undefined) {
             return Promise.reject(
@@ -347,25 +347,25 @@ export class SessionCipher {
             //  console.log('decrypting message for closed session')
         }
 
-        await this.maybeStepRatchet(session, remoteEphemeralKey, message.previousCounter)
+        await this.maybeStepRatchet(session, remoteEphemeralKey, message.previousCounter!)
 
-        const chain = session.chains[base64.fromByteArray(message.ephemeralKey)]
+        const chain = session.chains[base64.fromByteArray(message.ratchetKey!)]
         if (!chain) {
-            console.warn(`no chain found for key`, { key: base64.fromByteArray(message.ephemeralKey), session })
+            console.warn(`no chain found for key`, { key: base64.fromByteArray(message.ratchetKey!), session })
         }
         if (chain?.chainType === ChainType.SENDING) {
             throw new Error('Tried to decrypt on a sending chain')
         }
 
-        await this.fillMessageKeys(chain, message.counter)
+        await this.fillMessageKeys(chain, message.counter!)
 
-        const messageKey = chain.messageKeys[message.counter]
+        const messageKey = chain.messageKeys[message.counter!]
         if (messageKey === undefined) {
             const e = new Error('Message key not found. The counter was repeated or the key was not filled.')
             e.name = 'MessageCounterError'
             throw e
         }
-        delete chain.messageKeys[message.counter]
+        delete chain.messageKeys[message.counter!]
         const keys = await Internal.HKDF(messageKey, new ArrayBuffer(32), 'WhisperMessageKeys')
 
         const ourIdentityKey = await this.storage.getIdentityKeyPair()
@@ -383,7 +383,7 @@ export class SessionCipher {
 
         const plaintext = await Internal.crypto.decrypt(
             keys[0],
-            uint8ArrayToArrayBuffer(message.ciphertext),
+            uint8ArrayToArrayBuffer(message.ciphertext!),
             keys[2].slice(0, 16)
         )
 

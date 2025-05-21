@@ -4,7 +4,7 @@ import { DeviceType, SessionType, BaseKeyType, ChainType } from './session-types
 import * as Internal from './internal'
 import * as base64 from 'base64-js'
 import { SessionRecord } from './session-record'
-import { PreKeyWhisperMessage } from '@privacyresearch/libsignal-protocol-protobuf-ts'
+import { PreKeySignalMessage } from './protos'
 import { SessionLock } from './session-lock'
 import { uint8ArrayToArrayBuffer } from './helpers'
 
@@ -156,11 +156,11 @@ export class SessionBuilder {
     startSessionWthPreKeyMessage = async (
         OPKb: KeyPairType<ArrayBuffer> | undefined,
         SPKb: KeyPairType<ArrayBuffer>,
-        message: PreKeyWhisperMessage
+        message: PreKeySignalMessage
     ): Promise<SessionType> => {
         const IKb = await this.storage.getIdentityKeyPair()
-        const IKa = message.identityKey
-        const EKa = message.baseKey
+        const IKa = message.identityKey!
+        const EKa = message.baseKey!
 
         if (!IKb) {
             throw new Error(`No identity key. Cannot initiate session.`)
@@ -255,22 +255,22 @@ export class SessionBuilder {
         return SessionLock.queueJobForNumber(this.remoteAddress.toString(), runJob)
     }
 
-    async processV3(record: SessionRecord, message: PreKeyWhisperMessage): Promise<number | void> {
+    async processV3(record: SessionRecord, message: PreKeySignalMessage): Promise<number | void> {
         const trusted = this.storage.isTrustedIdentity(
             this.remoteAddress.name,
-            uint8ArrayToArrayBuffer(message.identityKey),
+            uint8ArrayToArrayBuffer(message.identityKey!),
             Direction.RECEIVING
         )
 
         if (!trusted) {
-            throw new Error(`Unknown identity key: ${uint8ArrayToArrayBuffer(message.identityKey)}`)
+            throw new Error(`Unknown identity key: ${uint8ArrayToArrayBuffer(message.identityKey!)}`)
         }
         const [preKeyPair, signedPreKeyPair] = await Promise.all([
-            this.storage.loadPreKey(message.preKeyId),
-            this.storage.loadSignedPreKey(message.signedPreKeyId),
+            this.storage.loadPreKey(message.preKeyId!),
+            this.storage.loadSignedPreKey(message.signedPreKeyId!),
         ])
 
-        if (record.getSessionByBaseKey(message.baseKey)) {
+        if (record.getSessionByBaseKey(message.baseKey!)) {
             return
         }
 
@@ -283,7 +283,7 @@ export class SessionBuilder {
             if (session !== undefined && session.currentRatchet !== undefined) {
                 return
             } else {
-                throw new Error('Missing Signed PreKey for PreKeyWhisperMessage')
+                throw new Error('Missing Signed PreKey for PreKeySignalMessage')
             }
         }
 
@@ -296,7 +296,7 @@ export class SessionBuilder {
 
         const new_session = await this.startSessionWthPreKeyMessage(preKeyPair, signedPreKeyPair, message)
         record.updateSessionState(new_session)
-        await this.storage.saveIdentity(this.remoteAddress.toString(), uint8ArrayToArrayBuffer(message.identityKey))
+        await this.storage.saveIdentity(this.remoteAddress.toString(), uint8ArrayToArrayBuffer(message.identityKey!))
 
         return message.preKeyId
     }
