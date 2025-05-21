@@ -16,8 +16,8 @@
     "preversion": "npm run lint && npm test",
     "version": "npm run format && git add -A src",
     "postversion": "git push && git push --tags",
-    "compile-protos:linux": "protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=./src/protos/ --ts_proto_opt=env=both --ts_proto_opt=exportCommonSymbols=false -I ./protos ./protos/WhisperTextProtocol.proto",
-    "compile-protos:windows": "protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto.cmd --ts_proto_out=./src/protos/ --ts_proto_opt=env=both --ts_proto_opt=exportCommonSymbols=false -I ./protos ./protos/WhisperTextProtocol.proto"
+    "compile-protos:linux": "protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=./src/protos/ --ts_proto_opt=env=both --ts_proto_opt=exportCommonSymbols=false -I ./protos ./protos/WhisperTextProtocol.proto ./protos/LocalStorageProtocol.proto",
+    "compile-protos:windows": "protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto.cmd --ts_proto_out=./src/protos/ --ts_proto_opt=env=both --ts_proto_opt=exportCommonSymbols=false -I ./protos ./protos/WhisperTextProtocol.proto ./protos/LocalStorageProtocol.proto"
   },
   "devDependencies": {
     "@protobuf-ts/protoc": "^2.10.0",

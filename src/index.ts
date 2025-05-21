@@ -9,6 +9,7 @@ export * from './session-builder'
 export * from './session-cipher'
 export * from './session-types'
 export * from './curve'
+export * from './groups'
 export * as proto from './protos'
 
 import * as Internal from './internal'
