@@ -53,23 +53,14 @@ describe('New Crypto Tests 2020', function () {
         const badsig = sig.slice(0)
         new Uint8Array(badsig).set([0], 0)
 
-        try {
-            await Internal.crypto.Ed25519Verify(pub, msg, badsig)
-        } catch (e) {
-            if ((e as Error).message === 'Invalid signature') {
-                return
-            }
-        }
-        console.error('Sign did not throw on bad input')
+        const result = await Internal.crypto.Ed25519Verify(pub, msg, badsig)
+        expect(result).toBe(false)
     })
 
-    test(`Ed25519Verify does not throw on good signature`, async () => {
+    test(`Ed25519Verify returns true on good signature`, async () => {
         const result = await Internal.crypto.Ed25519Verify(pub, msg, sig)
 
-        // These functions return false on valid signature! The async ones
-        // throw an error on invalid signature.  The synchronous ones return
-        // true on invalid signature.
-        expect(result).toBe(false)
+        expect(result).toBe(true)
     })
 })
 

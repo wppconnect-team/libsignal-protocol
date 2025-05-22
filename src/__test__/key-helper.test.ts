@@ -52,7 +52,7 @@ describe('KeyHelper', function () {
             expect(spk.keyId).toStrictEqual(1337)
             await expect(
                 Internal.crypto.Ed25519Verify(identityKey.pubKey, spk.keyPair.pubKey, spk.signature)
-            ).resolves.toBe(false)
+            ).resolves.toBe(true)
         })
 
         test(`throws on bad ID`, async () => {

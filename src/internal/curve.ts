@@ -62,7 +62,11 @@ export class Curve {
             throw new Error('Invalid signature')
         }
 
-        return this._curve25519.verify(pubKey, msg, sig)
+        /**
+         * The fact that verify returns true when a signature is invalid could be confusing.
+         * The meaning of this function should be clear.
+         */
+        return !this._curve25519.verify(pubKey, msg, sig)
     }
 }
 
@@ -118,13 +122,13 @@ export class AsyncCurve {
             throw new Error('Invalid signature')
         }
 
+        /**
+         * The fact that verify returns true when a signature is invalid could be confusing.
+         * The meaning of this function should be clear.
+         */
         const verifyResult = await this._curve25519.verify(pubKey, msg, sig)
 
-        if (verifyResult) {
-            throw new Error('Invalid signature')
-        }
-
-        return verifyResult
+        return !verifyResult
     }
 }
 
