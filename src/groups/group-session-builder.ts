@@ -1,8 +1,8 @@
 import { SenderKeyStore } from './state/sender-key-store'
 import { SenderKeyName } from './sender-key-name'
-import { SenderKeyRecord } from './state/sender-key-record'
 import { KeyHelper } from '../key-helper'
 import { SenderKeyDistributionMessage } from '../protos'
+import { SessionLock } from '../session-lock'
 
 /**
  * Responsible for setting up group SenderKey encrypted sessions.
@@ -27,15 +27,18 @@ export class GroupSessionBuilder {
         senderKeyName: SenderKeyName,
         senderKeyDistributionMessage: SenderKeyDistributionMessage
     ): Promise<void> {
-        // senderKeyDistributionMessage must have id, iteration, chainKey, signatureKey
-        const senderKeyRecord = await this.senderKeyStore.loadSenderKey(senderKeyName)
-        senderKeyRecord.addSenderKeyState(
-            senderKeyDistributionMessage.id!,
-            senderKeyDistributionMessage.iteration!,
-            senderKeyDistributionMessage.chainKey!,
-            senderKeyDistributionMessage.signingKey!
-        )
-        await this.senderKeyStore.storeSenderKey(senderKeyName, senderKeyRecord)
+        const runJob = async () => {
+            // senderKeyDistributionMessage must have id, iteration, chainKey, signatureKey
+            const senderKeyRecord = await this.senderKeyStore.loadSenderKey(senderKeyName)
+            senderKeyRecord.addSenderKeyState(
+                senderKeyDistributionMessage.id!,
+                senderKeyDistributionMessage.iteration!,
+                senderKeyDistributionMessage.chainKey!,
+                senderKeyDistributionMessage.signingKey!
+            )
+            await this.senderKeyStore.storeSenderKey(senderKeyName, senderKeyRecord)
+        }
+        return SessionLock.queueJobForNumber(senderKeyName.serialize(), runJob)
     }
 
     /**
@@ -44,23 +47,27 @@ export class GroupSessionBuilder {
      * @returns An object representing the SenderKeyDistributionMessage
      */
     async create(senderKeyName: SenderKeyName): Promise<SenderKeyDistributionMessage> {
-        // Returns an object representing SenderKeyDistributionMessage
-        const senderKeyRecord = await this.senderKeyStore.loadSenderKey(senderKeyName)
-        if (senderKeyRecord.isEmpty()) {
-            senderKeyRecord.setSenderKeyState(
-                KeyHelper.generateRegistrationId(),
-                0,
-                new Uint8Array(32).buffer, // random chainKey
-                await KeyHelper.generateIdentityKeyPair()
-            )
-            await this.senderKeyStore.storeSenderKey(senderKeyName, senderKeyRecord)
+        const runJob = async () => {
+            // Returns an object representing SenderKeyDistributionMessage
+            const senderKeyRecord = await this.senderKeyStore.loadSenderKey(senderKeyName)
+            if (senderKeyRecord.isEmpty()) {
+                senderKeyRecord.setSenderKeyState(
+                    KeyHelper.generateRegistrationId(),
+                    0,
+                    await KeyHelper.generateSenderKey(),
+                    await KeyHelper.generateIdentityKeyPair()
+                )
+                await this.senderKeyStore.storeSenderKey(senderKeyName, senderKeyRecord)
+            }
+            const state = senderKeyRecord.getSenderKeyState()
+            return {
+                id: state.getKeyId(),
+                iteration: state.getSenderChainKey().getIteration(),
+                chainKey: new Uint8Array(state.getSenderChainKey().getSeed()),
+                signingKey: new Uint8Array(state.getSigningKeyPublic()),
+            }
         }
-        const state = senderKeyRecord.getSenderKeyState()
-        return {
-            id: state.getKeyId(),
-            iteration: state.getSenderChainKey().getIteration(),
-            chainKey: new Uint8Array(state.getSenderChainKey().getSeed()),
-            signingKey: new Uint8Array(state.getSigningKeyPublic()),
-        }
+
+        return SessionLock.queueJobForNumber(senderKeyName.serialize(), runJob)
     }
 }

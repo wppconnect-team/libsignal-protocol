@@ -86,12 +86,14 @@ export class SenderKeyMessage {
      * @param serializedWithSig ArrayBuffer containing protobuf + signature
      */
     static fromSerialized(serializedWithSig: ArrayBuffer): SenderKeyMessage {
-        const versionByte = serializedWithSig[0]
+        const serializedEncoded = new Uint8Array(serializedWithSig)
+
+        const versionByte = serializedEncoded[0]
 
         const version = (versionByte & 0xff) >> 4
 
-        const message = serializedWithSig.slice(1, serializedWithSig.byteLength - SenderKeyMessage.SIGNATURE_LENGTH)
-        const signature = serializedWithSig.slice(-1 * SenderKeyMessage.SIGNATURE_LENGTH)
+        const message = serializedEncoded.slice(1, serializedEncoded.byteLength - SenderKeyMessage.SIGNATURE_LENGTH)
+        const signature = serializedEncoded.slice(-1 * SenderKeyMessage.SIGNATURE_LENGTH)
 
         const serialized = Buffer.concat([new Uint8Array([versionByte]), new Uint8Array(message)])
 

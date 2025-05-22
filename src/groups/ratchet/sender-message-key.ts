@@ -36,7 +36,14 @@ export class SenderMessageKey {
         const salt = new Uint8Array(32).buffer
         const [ivFull, cipherKeyFull] = await HKDF(seed, salt, 'WhisperGroup')
         const iv = ivFull.slice(0, 16)
-        const cipherKey = cipherKeyFull.slice(0, 32)
+
+        const keys = new Uint8Array(32)
+        keys.set(new Uint8Array(ivFull.slice(16)))
+        keys.set(new Uint8Array(cipherKeyFull.slice(0, 16)), 16)
+
+        const cipherKey = keys.buffer
+
+        // const cipherKey = cipherKeyFull.slice(0, 32)
         return new SenderMessageKey(iteration, seed, iv, cipherKey)
     }
 

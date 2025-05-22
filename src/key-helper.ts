@@ -35,6 +35,10 @@ export class KeyHelper {
         }
     }
 
+    static async generateSenderKey(): Promise<ArrayBuffer> {
+        return Internal.crypto.getRandomBytes(32)
+    }
+
     static async generatePreKey(keyId: number): Promise<PreKeyPairType> {
         if (!isNonNegativeInteger(keyId)) {
             throw new TypeError('Invalid argument for keyId: ' + keyId)
