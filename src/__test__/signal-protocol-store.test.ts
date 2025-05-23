@@ -1,7 +1,7 @@
 import { SignalProtocolAddress } from '../signal-protocol-address'
 import { SignalProtocolStore } from './storage-type'
 import * as Internal from '../internal'
-import { assertEqualArrayBuffers } from '../__test-utils__/utils'
+import * as utils from '../helpers'
 import { Direction } from '../types'
 
 describe('SignalProtocolStore', function () {
@@ -35,8 +35,8 @@ describe('SignalProtocolStore', function () {
                 expect(key).toBeDefined()
                 if (key) {
                     // we know we get here by previous assertion
-                    assertEqualArrayBuffers(key.pubKey, identityKey.pubKey)
-                    assertEqualArrayBuffers(key.privKey, identityKey.privKey)
+                    expect(utils.isEqual(key.pubKey, identityKey.pubKey)).toBeTruthy()
+                    expect(utils.isEqual(key.privKey, identityKey.privKey)).toBeTruthy()
                 }
             })
         })
@@ -48,7 +48,7 @@ describe('SignalProtocolStore', function () {
                 const key = await store.loadIdentityKey(number)
                 expect(key).toBeDefined()
                 if (key) {
-                    assertEqualArrayBuffers(key, testKey.pubKey)
+                    expect(utils.isEqual(key, testKey.pubKey)).toBeTruthy()
                 }
             })
         })
@@ -81,8 +81,8 @@ describe('SignalProtocolStore', function () {
                 const key = await store.loadPreKey(address.toString())
                 expect(key).toBeDefined()
                 if (key) {
-                    assertEqualArrayBuffers(key.pubKey, testKey.pubKey)
-                    assertEqualArrayBuffers(key.privKey, testKey.privKey)
+                    expect(utils.isEqual(key.pubKey, testKey.pubKey)).toBeTruthy()
+                    expect(utils.isEqual(key.privKey, testKey.privKey)).toBeTruthy()
                 }
             })
         })
@@ -96,8 +96,8 @@ describe('SignalProtocolStore', function () {
 
                 expect(key).toBeDefined()
                 if (key) {
-                    assertEqualArrayBuffers(key.pubKey, testKey.pubKey)
-                    assertEqualArrayBuffers(key.privKey, testKey.privKey)
+                    expect(utils.isEqual(key.pubKey, testKey.pubKey)).toBeTruthy()
+                    expect(utils.isEqual(key.privKey, testKey.privKey)).toBeTruthy()
                 }
             })
             test('returns undefined for prekeys that do not exist', async () => {
@@ -127,8 +127,8 @@ describe('SignalProtocolStore', function () {
                 const key = await store.loadSignedPreKey(3)
                 expect(key).toBeDefined()
                 if (key) {
-                    assertEqualArrayBuffers(key.pubKey, testKey.pubKey)
-                    assertEqualArrayBuffers(key.privKey, testKey.privKey)
+                    expect(utils.isEqual(key.pubKey, testKey.pubKey)).toBeTruthy()
+                    expect(utils.isEqual(key.privKey, testKey.privKey)).toBeTruthy()
                 }
             })
         })
@@ -140,8 +140,8 @@ describe('SignalProtocolStore', function () {
                 const key = await store.loadSignedPreKey(1)
                 expect(key).toBeDefined()
                 if (key) {
-                    assertEqualArrayBuffers(key.pubKey, testKey.pubKey)
-                    assertEqualArrayBuffers(key.privKey, testKey.privKey)
+                    expect(utils.isEqual(key.pubKey, testKey.pubKey)).toBeTruthy()
+                    expect(utils.isEqual(key.privKey, testKey.privKey)).toBeTruthy()
                 }
             })
 

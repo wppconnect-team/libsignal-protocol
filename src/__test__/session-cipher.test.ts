@@ -30,14 +30,14 @@ const record = new SessionRecord(registrationId)
 const session = {
     registrationId: registrationId,
     currentRatchet: {
-        rootKey: new ArrayBuffer(32),
-        lastRemoteEphemeralKey: new ArrayBuffer(32),
+        rootKey: new Uint8Array(32),
+        lastRemoteEphemeralKey: new Uint8Array(32),
         previousCounter: 0,
     },
     indexInfo: {
-        baseKey: new ArrayBuffer(32),
+        baseKey: new Uint8Array(32),
         baseKeyType: BaseKeyType.OURS,
-        remoteIdentityKey: new ArrayBuffer(32),
+        remoteIdentityKey: new Uint8Array(32),
         closed: -1,
     },
     oldRatchetList: [],
@@ -86,7 +86,7 @@ test('hasOpenSession: when there is no session returns false', async () => {
 async function setupReceiveStep(
     store: SignalProtocolStore,
     data: { [k: string]: any },
-    privKeyQueue: ArrayBuffer[]
+    privKeyQueue: Uint8Array[]
 ): Promise<void> {
     if (data.newEphemeralKey !== undefined) {
         privKeyQueue.push(data.newEphemeralKey)
@@ -115,12 +115,12 @@ function getPaddedMessageLength(messageLength: number): number {
     return messagePartCount * 160
 }
 
-function pad(plaintext: ArrayBuffer): ArrayBuffer {
+function pad(plaintext: Uint8Array): Uint8Array {
     const paddedPlaintext = new Uint8Array(getPaddedMessageLength(plaintext.byteLength + 1) - 1)
 
     paddedPlaintext.set(new Uint8Array(plaintext))
     paddedPlaintext[plaintext.byteLength] = 0x80
-    return utils.uint8ArrayToArrayBuffer(paddedPlaintext)
+    return paddedPlaintext
 }
 
 function unpad(paddedPlaintext: Uint8Array): Uint8Array {
@@ -181,7 +181,7 @@ async function doReceiveStep(
 async function setupSendStep(
     store: SignalProtocolStore,
     data: { [k: string]: any },
-    privKeyQueue: ArrayBuffer[]
+    privKeyQueue: Uint8Array[]
 ): Promise<void> {
     if (data.registrationId !== undefined) {
         store.put('registrationId', data.registrationId)
@@ -237,15 +237,15 @@ async function doSendStep(
         if (data.endSession) {
             //      console.log(`END SESSION PROTO`, { proto, pt })
         }
-        const msg = await sessionCipher.encrypt(pad(utils.uint8ArrayToArrayBuffer(pt)))
+        const msg = await sessionCipher.encrypt(pad(pt))
 
-        const msgbody = new Uint8Array(utils.binaryStringToArrayBuffer(msg.body!.substring(1))!)
+        const msgbody = new Uint8Array(utils.binaryStringToUint8Array(msg.body!.substring(1))!)
         // NOTE: equivalent protobuf objects can have different binary encodings and still be accepted by our
         // parsers to produce quivalent objects.  Instead of testing binary identity of the entire
         // protobuf message, we parse it and check field-level identity.
         let res: boolean
         if (msg.type === 1) {
-            res = utils.isEqual(data.expectedCiphertext, utils.binaryStringToArrayBuffer(msg.body || ''))
+            res = utils.isEqual(data.expectedCiphertext, utils.binaryStringToUint8Array(msg.body || ''))
         } else {
             if (new Uint8Array(data.expectedCiphertext)[0] !== msg.body?.charCodeAt(0)) {
                 throw new Error('Bad version byte')
@@ -273,12 +273,7 @@ async function doSendStep(
 
             const expected = PreKeySignalMessage.encode(datapkwmsg).finish()
 
-            if (
-                !utils.isEqual(
-                    utils.uint8ArrayToArrayBuffer(expected),
-                    utils.binaryStringToArrayBuffer(msg.body.substring(1))
-                )
-            ) {
+            if (!utils.isEqual(expected, utils.binaryStringToUint8Array(msg.body.substring(1)))) {
                 throw new Error('Result does not match expected ciphertext')
             }
 
@@ -320,7 +315,7 @@ function getDescription(step: { [k: string]: any }): string {
 
 tv.forEach(function (test) {
     describe(test.name, () => {
-        const privKeyQueue: ArrayBuffer[] = []
+        const privKeyQueue: Uint8Array[] = []
         const origCreateKeyPair = Internal.crypto.createKeyPair.bind(Internal.crypto)
 
         beforeAll(function () {
@@ -335,10 +330,7 @@ tv.forEach(function (test) {
                 } else {
                     const privKey = privKeyQueue.shift()
                     return Internal.crypto.createKeyPair(privKey).then(function (keyPair) {
-                        if (
-                            !privKey ||
-                            utils.arrayBufferToString(keyPair.privKey) != utils.arrayBufferToString(privKey)
-                        )
+                        if (!privKey || utils.uint8ArrayToString(keyPair.privKey) != utils.uint8ArrayToString(privKey))
                             throw new Error('Failed to rederive private key!')
                         else return keyPair
                     })
@@ -360,7 +352,7 @@ tv.forEach(function (test) {
                 let doStep: (
                     store: SignalProtocolStore,
                     data: Record<string, any>,
-                    q: ArrayBuffer[],
+                    q: Uint8Array[],
                     address: SignalProtocolAddress
                 ) => Promise<boolean>
 
@@ -381,7 +373,7 @@ tv.forEach(function (test) {
 describe('key changes', function () {
     const ALICE_ADDRESS = new SignalProtocolAddress('+14151111111', 1)
     const BOB_ADDRESS = new SignalProtocolAddress('+14152222222', 1)
-    const originalMessage = <ArrayBuffer>utils.binaryStringToArrayBuffer("L'homme est condamné à être libre")
+    const originalMessage = utils.binaryStringToUint8Array("L'homme est condamné à être libre")
 
     const aliceStore = new SignalProtocolStore()
 

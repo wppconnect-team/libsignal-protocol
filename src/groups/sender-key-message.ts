@@ -1,6 +1,5 @@
 import * as protos from '../protos'
 import { crypto } from '../internal/crypto'
-import { uint8ArrayToArrayBuffer } from '../helpers'
 
 /**
  * Represents a SenderKeyMessage for group messaging, including serialization and signature.
@@ -10,16 +9,16 @@ export class SenderKeyMessage {
     public static readonly SIGNATURE_LENGTH: number = 64
     public readonly keyId: number
     public readonly iteration: number
-    public readonly ciphertext: ArrayBuffer
-    public readonly signature: ArrayBuffer
-    public readonly serialized: ArrayBuffer
+    public readonly ciphertext: Uint8Array
+    public readonly signature: Uint8Array
+    public readonly serialized: Uint8Array
     public readonly version: number
     private constructor(
         keyId: number,
         iteration: number,
-        ciphertext: ArrayBuffer,
-        serialized: ArrayBuffer,
-        signature: ArrayBuffer,
+        ciphertext: Uint8Array,
+        serialized: Uint8Array,
+        signature: Uint8Array,
         version: number
     ) {
         this.keyId = keyId
@@ -40,8 +39,8 @@ export class SenderKeyMessage {
     static async create(
         keyId: number,
         iteration: number,
-        ciphertext: ArrayBuffer,
-        signingKeyPrivate: ArrayBuffer,
+        ciphertext: Uint8Array,
+        signingKeyPrivate: Uint8Array,
         version = 3
     ): Promise<SenderKeyMessage> {
         const versionByte = (((version << 4) | version) & 0xff) % 256
@@ -53,7 +52,7 @@ export class SenderKeyMessage {
         })
         const encoded = protos.SenderKeyMessage.encode(message).finish()
 
-        const serialized = Buffer.concat([new Uint8Array([versionByte]), encoded])
+        const serialized = new Uint8Array([versionByte, ...encoded])
 
         const signature = await crypto.Ed25519Sign(signingKeyPrivate, serialized)
 
@@ -64,28 +63,28 @@ export class SenderKeyMessage {
      * Verifies the signature of the message.
      * @param signingKeyPublic The sender's public signing key
      */
-    async verifySignature(signingKeyPublic: ArrayBuffer): Promise<boolean> {
+    async verifySignature(signingKeyPublic: Uint8Array): Promise<boolean> {
         return await crypto.Ed25519Verify(signingKeyPublic, this.serialized, this.signature)
     }
 
     /**
      * Serializes the message for transmission (protobuf + signature concatenated).
-     * @returns ArrayBuffer containing protobuf + signature
+     * @returns Uint8Array containing protobuf + signature
      */
-    serialize(): ArrayBuffer {
+    serialize(): Uint8Array {
         const sig = new Uint8Array(this.signature)
         const ser = new Uint8Array(this.serialized)
         const out = new Uint8Array(ser.length + sig.length)
         out.set(ser, 0)
         out.set(sig, ser.length)
-        return out.buffer
+        return out
     }
 
     /**
      * Creates an instance from serialized data (protobuf + signature concatenated).
-     * @param serializedWithSig ArrayBuffer containing protobuf + signature
+     * @param serializedWithSig Uint8Array containing protobuf + signature
      */
-    static fromSerialized(serializedWithSig: ArrayBuffer): SenderKeyMessage {
+    static fromSerialized(serializedWithSig: Uint8Array): SenderKeyMessage {
         const serializedEncoded = new Uint8Array(serializedWithSig)
 
         const versionByte = serializedEncoded[0]
@@ -95,12 +94,12 @@ export class SenderKeyMessage {
         const message = serializedEncoded.slice(1, serializedEncoded.byteLength - SenderKeyMessage.SIGNATURE_LENGTH)
         const signature = serializedEncoded.slice(-1 * SenderKeyMessage.SIGNATURE_LENGTH)
 
-        const serialized = Buffer.concat([new Uint8Array([versionByte]), new Uint8Array(message)])
+        const serialized = new Uint8Array([versionByte, ...message])
 
         const decoded = protos.SenderKeyMessage.decode(new Uint8Array(message))
         const keyId = decoded.id ?? 0
         const iteration = decoded.iteration ?? 0
-        const ciphertext = decoded.ciphertext ? uint8ArrayToArrayBuffer(decoded.ciphertext) : new ArrayBuffer(0)
+        const ciphertext = decoded.ciphertext ? decoded.ciphertext : new Uint8Array(0)
         return new SenderKeyMessage(keyId, iteration, ciphertext, serialized, signature, version)
     }
 }

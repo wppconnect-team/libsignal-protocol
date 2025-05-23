@@ -28,7 +28,7 @@ export class GroupCipher {
      * @param paddedPlaintext The plaintext message bytes, optionally padded
      * @returns Serialized SenderKeyMessage (protobuf + signature)
      */
-    async encrypt(paddedPlaintext: ArrayBuffer): Promise<ArrayBuffer> {
+    async encrypt(paddedPlaintext: Uint8Array): Promise<Uint8Array> {
         const runJob = async () => {
             const record = await this.senderKeyStore.loadSenderKey(this.senderKeyId)
             const senderKeyState = record.getSenderKeyState()
@@ -63,7 +63,7 @@ export class GroupCipher {
      * @param senderKeyMessageBytes The received serialized SenderKeyMessage (protobuf + signature)
      * @returns Plaintext
      */
-    async decrypt(senderKeyMessageBytes: ArrayBuffer): Promise<ArrayBuffer> {
+    async decrypt(senderKeyMessageBytes: Uint8Array): Promise<Uint8Array> {
         const runJob = async () => {
             const record = await this.senderKeyStore.loadSenderKey(this.senderKeyId)
             if (record.isEmpty()) throw new Error('No sender key for: ' + this.senderKeyId.serialize())

@@ -37,7 +37,7 @@ describe('GroupCipher (basic group message flow)', () => {
 
         // Sender encrypts a message
         const cipher = new GroupCipher(senderStore, senderKeyName)
-        const plaintext = new TextEncoder().encode('hello group!').buffer
+        const plaintext = new TextEncoder().encode('hello group!')
         const encrypted = await cipher.encrypt(plaintext)
 
         // Receiver decrypts the message
@@ -75,13 +75,13 @@ describe('GroupCipher (basic group message flow)', () => {
         const receiverSessionBuilder = new GroupSessionBuilder(receiverStore)
         await receiverSessionBuilder.process(receiverKeyName, distributionMsg)
         const cipher = new GroupCipher(senderStore, senderKeyName)
-        const plaintext = new TextEncoder().encode('tampered!').buffer
+        const plaintext = new TextEncoder().encode('tampered!')
         const encrypted = await cipher.encrypt(plaintext)
         // Tamper with the signature (last byte)
         const tampered = new Uint8Array(encrypted)
         tampered[tampered.length - 1] ^= 0xff
         const receiverCipher = new GroupCipher(receiverStore, receiverKeyName)
-        await expect(receiverCipher.decrypt(tampered.buffer)).rejects.toThrow('Invalid signature')
+        await expect(receiverCipher.decrypt(tampered)).rejects.toThrow('Invalid signature')
     })
 
     it('should persist and restore group state', async () => {
@@ -98,7 +98,7 @@ describe('GroupCipher (basic group message flow)', () => {
         await receiverSessionBuilder.process(receiverKeyName, distributionMsg)
         // Sender encrypts a message
         const cipher = new GroupCipher(senderStore, senderKeyName)
-        const plaintext = new TextEncoder().encode('persisted message').buffer
+        const plaintext = new TextEncoder().encode('persisted message')
         const encrypted = await cipher.encrypt(plaintext)
         // Persist state
         const senderRecordSerialized = senderStore.loadSenderKey(senderKeyName).serialize()

@@ -10,32 +10,32 @@ export interface SignalProtocolAddressType {
 export interface FingerprintGeneratorType {
     createFor: (
         localIdentifier: string,
-        localIdentityKey: ArrayBuffer,
+        localIdentityKey: Uint8Array,
         remoteIdentifier: string,
-        remoteIdentityKey: ArrayBuffer
+        remoteIdentityKey: Uint8Array
     ) => Promise<string>
 }
 
-export interface KeyPairType<T = ArrayBuffer> {
+export interface KeyPairType<T = Uint8Array> {
     pubKey: T
     privKey: T
 }
 
-export interface PreKeyPairType<T = ArrayBuffer> {
+export interface PreKeyPairType<T = Uint8Array> {
     keyId: number
     keyPair: KeyPairType<T>
 }
 
-export interface SignedPreKeyPairType<T = ArrayBuffer> extends PreKeyPairType<T> {
+export interface SignedPreKeyPairType<T = Uint8Array> extends PreKeyPairType<T> {
     signature: T
 }
 
-export interface PreKeyType<T = ArrayBuffer> {
+export interface PreKeyType<T = Uint8Array> {
     keyId: number
     publicKey: T
 }
 
-export interface SignedPublicPreKeyType<T = ArrayBuffer> extends PreKeyType<T> {
+export interface SignedPublicPreKeyType<T = Uint8Array> extends PreKeyType<T> {
     signature: T
 }
 
@@ -49,8 +49,8 @@ export interface StorageType {
     getIdentityKeyPair: () => Promise<KeyPairType | undefined>
     getLocalRegistrationId: () => Promise<number | undefined>
 
-    isTrustedIdentity: (identifier: string, identityKey: ArrayBuffer, direction: Direction) => Promise<boolean>
-    saveIdentity: (encodedAddress: string, publicKey: ArrayBuffer, nonblockingApproval?: boolean) => Promise<boolean>
+    isTrustedIdentity: (identifier: string, identityKey: Uint8Array, direction: Direction) => Promise<boolean>
+    saveIdentity: (encodedAddress: string, publicKey: Uint8Array, nonblockingApproval?: boolean) => Promise<boolean>
 
     loadPreKey: (encodedAddress: string | number) => Promise<KeyPairType | undefined>
     storePreKey: (keyId: number | string, keyPair: KeyPairType) => Promise<void>
@@ -67,17 +67,17 @@ export interface StorageType {
 
 export interface CurveType {
     generateKeyPair: () => Promise<KeyPairType>
-    createKeyPair: (privKey: ArrayBuffer) => Promise<KeyPairType>
-    calculateAgreement: (pubKey: ArrayBuffer, privKey: ArrayBuffer) => Promise<ArrayBuffer>
-    verifySignature: (pubKey: ArrayBuffer, msg: ArrayBuffer, sig: ArrayBuffer) => Promise<void>
-    calculateSignature: (privKey: ArrayBuffer, message: ArrayBuffer) => ArrayBuffer | Promise<ArrayBuffer>
-    validatePubKeyFormat: (buffer: ArrayBuffer) => ArrayBuffer
+    createKeyPair: (privKey: Uint8Array) => Promise<KeyPairType>
+    calculateAgreement: (pubKey: Uint8Array, privKey: Uint8Array) => Promise<Uint8Array>
+    verifySignature: (pubKey: Uint8Array, msg: Uint8Array, sig: Uint8Array) => Promise<void>
+    calculateSignature: (privKey: Uint8Array, message: Uint8Array) => Uint8Array | Promise<Uint8Array>
+    validatePubKeyFormat: (buffer: Uint8Array) => Uint8Array
 }
 
 export interface AsyncCurveType {
     generateKeyPair: () => Promise<KeyPairType>
-    createKeyPair: (privKey: ArrayBuffer) => Promise<KeyPairType>
-    calculateAgreement: (pubKey: ArrayBuffer, privKey: ArrayBuffer) => Promise<ArrayBuffer>
-    verifySignature: (pubKey: ArrayBuffer, msg: ArrayBuffer, sig: ArrayBuffer) => Promise<boolean>
-    calculateSignature: (privKey: ArrayBuffer, message: ArrayBuffer) => Promise<ArrayBuffer>
+    createKeyPair: (privKey: Uint8Array) => Promise<KeyPairType>
+    calculateAgreement: (pubKey: Uint8Array, privKey: Uint8Array) => Promise<Uint8Array>
+    verifySignature: (pubKey: Uint8Array, msg: Uint8Array, sig: Uint8Array) => Promise<boolean>
+    calculateSignature: (privKey: Uint8Array, message: Uint8Array) => Promise<Uint8Array>
 }

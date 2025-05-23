@@ -13,16 +13,16 @@ export class Curve {
         const privKey = Internal.crypto.getRandomBytes(32)
         return this._curve.createKeyPair(privKey)
     }
-    createKeyPair(privKey: ArrayBuffer): KeyPairType {
+    createKeyPair(privKey: Uint8Array): KeyPairType {
         return this._curve.createKeyPair(privKey)
     }
-    calculateAgreement(pubKey: ArrayBuffer, privKey: ArrayBuffer): ArrayBuffer {
+    calculateAgreement(pubKey: Uint8Array, privKey: Uint8Array): Uint8Array {
         return this._curve.ECDHE(pubKey, privKey)
     }
-    verifySignature(pubKey: ArrayBuffer, msg: ArrayBuffer, sig: ArrayBuffer): boolean {
+    verifySignature(pubKey: Uint8Array, msg: Uint8Array, sig: Uint8Array): boolean {
         return this._curve.Ed25519Verify(pubKey, msg, sig)
     }
-    calculateSignature(privKey: ArrayBuffer, message: ArrayBuffer): ArrayBuffer {
+    calculateSignature(privKey: Uint8Array, message: Uint8Array): Uint8Array {
         return this._curve.Ed25519Sign(privKey, message)
     }
 }
@@ -38,19 +38,19 @@ export class AsyncCurve implements AsyncCurveType {
         return this._curve.createKeyPair(privKey)
     }
 
-    createKeyPair(privKey: ArrayBuffer): Promise<KeyPairType> {
+    createKeyPair(privKey: Uint8Array): Promise<KeyPairType> {
         return this._curve.createKeyPair(privKey)
     }
 
-    calculateAgreement(pubKey: ArrayBuffer, privKey: ArrayBuffer): Promise<ArrayBuffer> {
+    calculateAgreement(pubKey: Uint8Array, privKey: Uint8Array): Promise<Uint8Array> {
         return this._curve.ECDHE(pubKey, privKey)
     }
 
-    verifySignature(pubKey: ArrayBuffer, msg: ArrayBuffer, sig: ArrayBuffer): Promise<boolean> {
+    verifySignature(pubKey: Uint8Array, msg: Uint8Array, sig: Uint8Array): Promise<boolean> {
         return this._curve.Ed25519Verify(pubKey, msg, sig)
     }
 
-    calculateSignature(privKey: ArrayBuffer, message: ArrayBuffer): Promise<ArrayBuffer> {
+    calculateSignature(privKey: Uint8Array, message: Uint8Array): Promise<Uint8Array> {
         return this._curve.Ed25519Sign(privKey, message)
     }
 }

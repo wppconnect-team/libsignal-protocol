@@ -18,8 +18,8 @@ export function isSignedPreKeyType(spk: any): spk is SignedPreKeyPairType {
 }
 
 interface KeyPairType {
-    pubKey: ArrayBuffer
-    privKey: ArrayBuffer
+    pubKey: Uint8Array
+    privKey: Uint8Array
 }
 
 interface PreKeyType {
@@ -27,15 +27,14 @@ interface PreKeyType {
     keyPair: KeyPairType
 }
 interface SignedPreKeyType extends PreKeyType {
-    signature: ArrayBuffer
+    signature: Uint8Array
 }
 
-function isArrayBuffer(thing: StoreValue): boolean {
-    const t = typeof thing
-    return !!thing && t !== 'string' && t !== 'number' && 'byteLength' in (thing as any)
+function isUint8Array(thing: StoreValue): boolean {
+    return thing instanceof Uint8Array
 }
 
-type StoreValue = KeyPairType | string | number | KeyPairType | PreKeyType | SignedPreKeyType | ArrayBuffer | undefined
+type StoreValue = KeyPairType | string | number | PreKeyType | SignedPreKeyType | Uint8Array | undefined
 
 export class SignalProtocolStore implements StorageType {
     private _store: Record<string, StoreValue>
@@ -77,24 +76,15 @@ export class SignalProtocolStore implements StorageType {
         }
         throw new Error('Stored Registration ID is not a number')
     }
-    isTrustedIdentity(
-        identifier: string,
-        identityKey: ArrayBuffer,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        _direction: Direction
-    ): Promise<boolean> {
+    isTrustedIdentity(identifier: string, identityKey: Uint8Array, _direction: Direction): Promise<boolean> {
         if (identifier === null || identifier === undefined) {
             throw new Error('tried to check identity key for undefined/null key')
         }
         const trusted = this.get('identityKey' + identifier, undefined)
-
-        // TODO: Is this right? If the ID is NOT in our store we trust it?
         if (trusted === undefined) {
             return Promise.resolve(true)
         }
-        return Promise.resolve(
-            util.arrayBufferToString(identityKey) === util.arrayBufferToString(trusted as ArrayBuffer)
-        )
+        return Promise.resolve(util.uint8ArrayToString(identityKey) === util.uint8ArrayToString(trusted as Uint8Array))
     }
     async loadPreKey(keyId: string | number): Promise<KeyPairType | undefined> {
         let res = this.get('25519KeypreKey' + keyId, undefined)
@@ -113,7 +103,7 @@ export class SignalProtocolStore implements StorageType {
         } else if (typeof rec === 'undefined') {
             return rec
         }
-        throw new Error(`session record is not an ArrayBuffer`)
+        throw new Error(`session record is not an Uint8Array`)
     }
 
     async loadSignedPreKey(keyId: number | string): Promise<KeyPairType | undefined> {
@@ -128,7 +118,7 @@ export class SignalProtocolStore implements StorageType {
     async removePreKey(keyId: number | string): Promise<void> {
         this.remove('25519KeypreKey' + keyId)
     }
-    async saveIdentity(identifier: string, identityKey: ArrayBuffer): Promise<boolean> {
+    async saveIdentity(identifier: string, identityKey: Uint8Array): Promise<boolean> {
         if (identifier === null || identifier === undefined)
             throw new Error('Tried to put identity key for undefined/null key')
 
@@ -136,11 +126,11 @@ export class SignalProtocolStore implements StorageType {
 
         const existing = this.get('identityKey' + address.getName(), undefined)
         this.put('identityKey' + address.getName(), identityKey)
-        if (existing && !isArrayBuffer(existing)) {
+        if (existing && !isUint8Array(existing)) {
             throw new Error('Identity Key is incorrect type')
         }
 
-        if (existing && util.arrayBufferToString(identityKey) !== util.arrayBufferToString(existing as ArrayBuffer)) {
+        if (existing && util.uint8ArrayToString(identityKey) !== util.uint8ArrayToString(existing as Uint8Array)) {
             return true
         } else {
             return false
@@ -149,14 +139,14 @@ export class SignalProtocolStore implements StorageType {
     async storeSession(identifier: string, record: SessionRecordType): Promise<void> {
         return this.put('session' + identifier, record)
     }
-    async loadIdentityKey(identifier: string): Promise<ArrayBuffer | undefined> {
+    async loadIdentityKey(identifier: string): Promise<Uint8Array | undefined> {
         if (identifier === null || identifier === undefined) {
             throw new Error('Tried to get identity key for undefined/null key')
         }
 
         const key = this.get('identityKey' + identifier, undefined)
-        if (isArrayBuffer(key)) {
-            return key as ArrayBuffer
+        if (isUint8Array(key)) {
+            return key as Uint8Array
         } else if (typeof key === 'undefined') {
             return key
         }

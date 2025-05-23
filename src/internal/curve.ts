@@ -5,7 +5,6 @@ import {
     AsyncCurve as AsyncCurveType,
     Curve as CurveType,
 } from '@privacyresearch/curve25519-typescript'
-import { uint8ArrayToArrayBuffer } from '../helpers'
 
 export class Curve {
     // Curve 25519 crypto
@@ -20,37 +19,40 @@ export class Curve {
         this._curve25519 = c
     }
 
-    createKeyPair(privKey: ArrayBuffer): KeyPairType {
+    createKeyPair(privKey: Uint8Array): KeyPairType {
         validatePrivKey(privKey)
         const raw_keys = this._curve25519.keyPair(privKey)
-        return processKeys(raw_keys)
+        return processKeys({
+            pubKey: new Uint8Array(raw_keys.pubKey),
+            privKey: new Uint8Array(raw_keys.privKey),
+        })
     }
 
-    ECDHE(pubKey: ArrayBuffer, privKey: ArrayBuffer): ArrayBuffer {
+    ECDHE(pubKey: Uint8Array, privKey: Uint8Array): Uint8Array {
         pubKey = validatePubKeyFormat(pubKey)
         validatePrivKey(privKey)
 
-        if (pubKey === undefined || pubKey.byteLength != 32) {
+        if (pubKey === undefined || pubKey.length != 32) {
             throw new Error('Invalid public key')
         }
 
-        return this._curve25519.sharedSecret(pubKey, privKey)
+        return new Uint8Array(this._curve25519.sharedSecret(pubKey, privKey))
     }
 
-    Ed25519Sign(privKey: ArrayBuffer, message: ArrayBuffer): ArrayBuffer {
+    Ed25519Sign(privKey: Uint8Array, message: Uint8Array): Uint8Array {
         validatePrivKey(privKey)
 
         if (message === undefined) {
             throw new Error('Invalid message')
         }
 
-        return this._curve25519.sign(privKey, message)
+        return new Uint8Array(this._curve25519.sign(privKey, message))
     }
 
-    Ed25519Verify(pubKey: ArrayBuffer, msg: ArrayBuffer, sig: ArrayBuffer): boolean {
+    Ed25519Verify(pubKey: Uint8Array, msg: Uint8Array, sig: Uint8Array): boolean {
         pubKey = validatePubKeyFormat(pubKey)
 
-        if (pubKey === undefined || pubKey.byteLength != 32) {
+        if (pubKey === undefined || pubKey.length != 32) {
             throw new Error('Invalid public key')
         }
 
@@ -58,7 +60,7 @@ export class Curve {
             throw new Error('Invalid message')
         }
 
-        if (sig === undefined || sig.byteLength != 64) {
+        if (sig === undefined || sig.length != 64) {
             throw new Error('Invalid signature')
         }
 
@@ -80,37 +82,40 @@ export class AsyncCurve {
         this._curve25519 = c
     }
 
-    async createKeyPair(privKey: ArrayBuffer): Promise<KeyPairType> {
+    async createKeyPair(privKey: Uint8Array): Promise<KeyPairType> {
         validatePrivKey(privKey)
         const raw_keys = await this._curve25519.keyPair(privKey)
-        return processKeys(raw_keys)
+        return processKeys({
+            pubKey: new Uint8Array(raw_keys.pubKey),
+            privKey: new Uint8Array(raw_keys.privKey),
+        })
     }
 
-    ECDHE(pubKey: ArrayBuffer, privKey: ArrayBuffer): Promise<ArrayBuffer> {
+    async ECDHE(pubKey: Uint8Array, privKey: Uint8Array): Promise<Uint8Array> {
         pubKey = validatePubKeyFormat(pubKey)
         validatePrivKey(privKey)
 
-        if (pubKey === undefined || pubKey.byteLength != 32) {
+        if (pubKey === undefined || pubKey.length != 32) {
             throw new Error('Invalid public key')
         }
 
-        return this._curve25519.sharedSecret(pubKey, privKey)
+        return new Uint8Array(await this._curve25519.sharedSecret(pubKey, privKey))
     }
 
-    Ed25519Sign(privKey: ArrayBuffer, message: ArrayBuffer): Promise<ArrayBuffer> {
+    async Ed25519Sign(privKey: Uint8Array, message: Uint8Array): Promise<Uint8Array> {
         validatePrivKey(privKey)
 
         if (message === undefined) {
             throw new Error('Invalid message')
         }
 
-        return this._curve25519.sign(privKey, message)
+        return new Uint8Array(await this._curve25519.sign(privKey, message))
     }
 
-    async Ed25519Verify(pubKey: ArrayBuffer, msg: ArrayBuffer, sig: ArrayBuffer): Promise<boolean> {
+    async Ed25519Verify(pubKey: Uint8Array, msg: Uint8Array, sig: Uint8Array): Promise<boolean> {
         pubKey = validatePubKeyFormat(pubKey)
 
-        if (pubKey === undefined || pubKey.byteLength != 32) {
+        if (pubKey === undefined || pubKey.length != 32) {
             throw new Error('Invalid public key')
         }
 
@@ -118,7 +123,7 @@ export class AsyncCurve {
             throw new Error('Invalid message')
         }
 
-        if (sig === undefined || sig.byteLength != 64) {
+        if (sig === undefined || sig.length != 64) {
             throw new Error('Invalid signature')
         }
 
@@ -133,24 +138,19 @@ export class AsyncCurve {
 }
 
 function validatePrivKey(privKey: unknown): void {
-    if (privKey === undefined || !(privKey instanceof ArrayBuffer) || privKey.byteLength != 32) {
+    if (!(privKey instanceof Uint8Array) || privKey.length != 32) {
         throw new Error('Invalid private key')
     }
 }
-function validatePubKeyFormat(pubKey: ArrayBuffer): ArrayBuffer {
-    if (
-        pubKey === undefined ||
-        ((pubKey.byteLength != 33 || new Uint8Array(pubKey)[0] != 5) && pubKey.byteLength != 32)
-    ) {
+function validatePubKeyFormat(pubKey: Uint8Array): Uint8Array {
+    if (pubKey === undefined || ((pubKey.length != 33 || pubKey[0] != 5) && pubKey.length != 32)) {
         console.warn(`Invalid public key`, { pubKey })
-        throw new Error(`Invalid public key: ${pubKey} ${pubKey?.byteLength}`)
+        throw new Error(`Invalid public key: ${pubKey} ${pubKey?.length}`)
     }
-    if (pubKey.byteLength == 33) {
+    if (pubKey.length == 33) {
         return pubKey.slice(1)
     } else {
-        console.error(
-            'WARNING: Expected pubkey of length 33, please report the ST and client that generated the pubkey'
-        )
+        console.error('WARNING: Expected pubkey of length 33, please report o ST e o client que gerou a pubkey')
         return pubKey
     }
 }
@@ -162,5 +162,5 @@ function processKeys(raw_keys: KeyPairType): KeyPairType {
     pub.set(origPub, 1)
     pub[0] = 5
 
-    return { pubKey: uint8ArrayToArrayBuffer(pub), privKey: raw_keys.privKey }
+    return { pubKey: pub, privKey: new Uint8Array(raw_keys.privKey) }
 }

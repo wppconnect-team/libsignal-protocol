@@ -20,24 +20,24 @@ export class Crypto {
         this._curve.curve = c
     }
 
-    getRandomBytes(n: number): ArrayBuffer {
+    getRandomBytes(n: number): Uint8Array {
         const array = new Uint8Array(n)
         this._webcrypto.getRandomValues(array)
-        return util.uint8ArrayToArrayBuffer(array)
+        return array
     }
 
-    async encrypt(key: ArrayBuffer, data: ArrayBuffer, iv: ArrayBuffer): Promise<ArrayBuffer> {
+    async encrypt(key: Uint8Array, data: Uint8Array, iv: Uint8Array): Promise<Uint8Array> {
         const impkey = await this._webcrypto.subtle.importKey('raw', key, { name: 'AES-CBC' }, false, ['encrypt'])
-
-        return this._webcrypto.subtle.encrypt({ name: 'AES-CBC', iv: new Uint8Array(iv) }, impkey, data)
+        const result = await this._webcrypto.subtle.encrypt({ name: 'AES-CBC', iv }, impkey, data)
+        return new Uint8Array(result)
     }
 
-    async decrypt(key: ArrayBuffer, data: ArrayBuffer, iv: ArrayBuffer): Promise<ArrayBuffer> {
+    async decrypt(key: Uint8Array, data: Uint8Array, iv: Uint8Array): Promise<Uint8Array> {
         const impkey = await this._webcrypto.subtle.importKey('raw', key, { name: 'AES-CBC' }, false, ['decrypt'])
-
-        return this._webcrypto.subtle.decrypt({ name: 'AES-CBC', iv: new Uint8Array(iv) }, impkey, data)
+        const result = await this._webcrypto.subtle.decrypt({ name: 'AES-CBC', iv }, impkey, data)
+        return new Uint8Array(result)
     }
-    async sign(key: ArrayBuffer, data: ArrayBuffer): Promise<ArrayBuffer> {
+    async sign(key: Uint8Array, data: Uint8Array): Promise<Uint8Array> {
         const impkey = await this._webcrypto.subtle.importKey(
             'raw',
             key,
@@ -45,56 +45,56 @@ export class Crypto {
             false,
             ['sign']
         )
-
         try {
-            return this._webcrypto.subtle.sign({ name: 'HMAC', hash: 'SHA-256' }, impkey, data)
+            const result = await this._webcrypto.subtle.sign({ name: 'HMAC', hash: 'SHA-256' }, impkey, data)
+            return new Uint8Array(result)
         } catch (e) {
             // console.log({ e, data, impkey })
             throw e
         }
     }
-    async hash(data: ArrayBuffer): Promise<ArrayBuffer> {
-        return this._webcrypto.subtle.digest({ name: 'SHA-512' }, data)
+    async hash(data: Uint8Array): Promise<Uint8Array> {
+        const result = await this._webcrypto.subtle.digest({ name: 'SHA-512' }, data)
+        return new Uint8Array(result)
     }
 
-    async HKDF(input: ArrayBuffer, salt: ArrayBuffer, info: ArrayBuffer): Promise<ArrayBuffer[]> {
+    async HKDF(input: Uint8Array, salt: Uint8Array, info: Uint8Array): Promise<Uint8Array[]> {
         // Specific implementation of RFC 5869 that only returns the first 3 32-byte chunks
         if (typeof info === 'string') {
             throw new Error(`HKDF info was a string`)
         }
         const PRK = await Internal.crypto.sign(salt, input)
-        const infoBuffer = new ArrayBuffer(info.byteLength + 1 + 32)
-        const infoArray = new Uint8Array(infoBuffer)
-        infoArray.set(new Uint8Array(info), 32)
-        infoArray[infoArray.length - 1] = 1
+        const infoBuffer = new Uint8Array(info.length + 1 + 32)
+        infoBuffer.set(info, 32)
+        infoBuffer[infoBuffer.length - 1] = 1
         const T1 = await Internal.crypto.sign(PRK, infoBuffer.slice(32))
-        infoArray.set(new Uint8Array(T1))
-        infoArray[infoArray.length - 1] = 2
+        infoBuffer.set(T1)
+        infoBuffer[infoBuffer.length - 1] = 2
         const T2 = await Internal.crypto.sign(PRK, infoBuffer)
-        infoArray.set(new Uint8Array(T2))
-        infoArray[infoArray.length - 1] = 3
+        infoBuffer.set(T2)
+        infoBuffer[infoBuffer.length - 1] = 3
         const T3 = await Internal.crypto.sign(PRK, infoBuffer)
         return [T1, T2, T3]
     }
 
     // Curve25519 crypto
 
-    createKeyPair(privKey?: ArrayBuffer): Promise<KeyPairType> {
+    createKeyPair(privKey?: Uint8Array): Promise<KeyPairType> {
         if (!privKey) {
             privKey = this.getRandomBytes(32)
         }
         return this._curve.createKeyPair(privKey)
     }
 
-    ECDHE(pubKey: ArrayBuffer, privKey: ArrayBuffer): Promise<ArrayBuffer> {
+    ECDHE(pubKey: Uint8Array, privKey: Uint8Array): Promise<Uint8Array> {
         return this._curve.ECDHE(pubKey, privKey)
     }
 
-    Ed25519Sign(privKey: ArrayBuffer, message: ArrayBuffer): Promise<ArrayBuffer> {
+    Ed25519Sign(privKey: Uint8Array, message: Uint8Array): Promise<Uint8Array> {
         return this._curve.Ed25519Sign(privKey, message)
     }
 
-    Ed25519Verify(pubKey: ArrayBuffer, msg: ArrayBuffer, sig: ArrayBuffer): Promise<boolean> {
+    Ed25519Verify(pubKey: Uint8Array, msg: Uint8Array, sig: Uint8Array): Promise<boolean> {
         return this._curve.Ed25519Verify(pubKey, msg, sig)
     }
 }
@@ -110,12 +110,12 @@ export function setCurve(curve: AsyncCurveType): void {
 }
 
 // HKDF for TextSecure has a bit of additional handling - salts always end up being 32 bytes
-export function HKDF(input: ArrayBuffer, salt: ArrayBuffer, info: string): Promise<ArrayBuffer[]> {
-    if (salt.byteLength != 32) {
+export function HKDF(input: Uint8Array, salt: Uint8Array, info: string): Promise<Uint8Array[]> {
+    if (salt.length != 32) {
         throw new Error('Got salt of incorrect length')
     }
 
-    const abInfo = util.binaryStringToArrayBuffer(info)
+    const abInfo = util.binaryStringToUint8Array(info)
     if (!abInfo) {
         throw new Error(`Invalid HKDF info`)
     }
@@ -123,15 +123,15 @@ export function HKDF(input: ArrayBuffer, salt: ArrayBuffer, info: string): Promi
     return crypto.HKDF(input, salt, abInfo)
 }
 
-export async function verifyMAC(data: ArrayBuffer, key: ArrayBuffer, mac: ArrayBuffer, length: number): Promise<void> {
+export async function verifyMAC(data: Uint8Array, key: Uint8Array, mac: Uint8Array, length: number): Promise<void> {
     const calculated_mac = await crypto.sign(key, data)
-    if (mac.byteLength != length || calculated_mac.byteLength < length) {
+    if (mac.length != length || calculated_mac.length < length) {
         throw new Error('Bad MAC length')
     }
     const a = new Uint8Array(calculated_mac)
     const b = new Uint8Array(mac)
     let result = 0
-    for (let i = 0; i < mac.byteLength; ++i) {
+    for (let i = 0; i < mac.length; ++i) {
         result = result | (a[i] ^ b[i])
     }
     if (result !== 0) {
@@ -139,6 +139,6 @@ export async function verifyMAC(data: ArrayBuffer, key: ArrayBuffer, mac: ArrayB
     }
 }
 
-export function calculateMAC(key: ArrayBuffer, data: ArrayBuffer): Promise<ArrayBuffer> {
+export function calculateMAC(key: Uint8Array, data: Uint8Array): Promise<Uint8Array> {
     return crypto.sign(key, data)
 }

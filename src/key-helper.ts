@@ -16,9 +16,9 @@ export class KeyHelper {
         signedKeyId: number
     ): Promise<SignedPreKeyPairType> {
         if (
-            !(identityKeyPair.privKey instanceof ArrayBuffer) ||
+            !(identityKeyPair.privKey instanceof Uint8Array) ||
             identityKeyPair.privKey.byteLength !== 32 ||
-            !(identityKeyPair.pubKey instanceof ArrayBuffer) ||
+            !(identityKeyPair.pubKey instanceof Uint8Array) ||
             identityKeyPair.pubKey.byteLength !== 33
         ) {
             throw new TypeError('Invalid argument for identityKeyPair')
@@ -35,7 +35,7 @@ export class KeyHelper {
         }
     }
 
-    static async generateSenderKey(): Promise<ArrayBuffer> {
+    static async generateSenderKey(): Promise<Uint8Array> {
         return Internal.crypto.getRandomBytes(32)
     }
 

@@ -5,8 +5,7 @@ import * as Internal from './internal'
 import { SessionRecord } from './session-record'
 import { PreKeySignalMessage } from './protos'
 import { SessionLock } from './session-lock'
-import { uint8ArrayToArrayBuffer } from './helpers'
-import { arrayBufferToBase64 } from './helpers'
+import { uint8ArrayToBase64 } from './helpers'
 
 export class SessionBuilder {
     remoteAddress: SignalProtocolAddressType
@@ -74,10 +73,10 @@ export class SessionBuilder {
     // Arguments map to the X3DH spec: https://signal.org/docs/specifications/x3dh/#keys
     // We are Alice the initiator.
     startSessionAsInitiator = async (
-        EKa: KeyPairType<ArrayBuffer>,
-        IKb: ArrayBuffer,
-        SPKb: ArrayBuffer,
-        OPKb: ArrayBuffer | undefined,
+        EKa: KeyPairType<Uint8Array>,
+        IKb: Uint8Array,
+        SPKb: Uint8Array,
+        OPKb: Uint8Array | undefined,
         registrationId?: number
     ): Promise<SessionType> => {
         const IKa = await this.storage.getIdentityKeyPair()
@@ -111,17 +110,16 @@ export class SessionBuilder {
             Internal.crypto.ECDHE(SPKb, EKa.privKey),
         ])
 
-        sharedSecret.set(new Uint8Array(ecRes[0]), 32)
-        sharedSecret.set(new Uint8Array(ecRes[1]), 32 * 2)
-
-        sharedSecret.set(new Uint8Array(ecRes[2]), 32 * 3)
+        sharedSecret.set(ecRes[0], 32)
+        sharedSecret.set(ecRes[1], 32 * 2)
+        sharedSecret.set(ecRes[2], 32 * 3)
 
         if (OPKb !== undefined) {
             const ecRes4 = await Internal.crypto.ECDHE(OPKb, EKa.privKey)
-            sharedSecret.set(new Uint8Array(ecRes4), 32 * 4)
+            sharedSecret.set(ecRes4, 32 * 4)
         }
 
-        const masterKey = await Internal.HKDF(uint8ArrayToArrayBuffer(sharedSecret), new ArrayBuffer(32), 'WhisperText')
+        const masterKey = await Internal.HKDF(sharedSecret, new Uint8Array(32), 'WhisperText')
 
         const session: SessionType = {
             registrationId: registrationId,
@@ -154,8 +152,8 @@ export class SessionBuilder {
     // Arguments map to the X3DH spec: https://signal.org/docs/specifications/x3dh/#keys
     // We are Bob now.
     startSessionWthPreKeyMessage = async (
-        OPKb: KeyPairType<ArrayBuffer> | undefined,
-        SPKb: KeyPairType<ArrayBuffer>,
+        OPKb: KeyPairType<Uint8Array> | undefined,
+        SPKb: KeyPairType<Uint8Array>,
         message: PreKeySignalMessage
     ): Promise<SessionType> => {
         const IKb = await this.storage.getIdentityKeyPair()
@@ -187,16 +185,16 @@ export class SessionBuilder {
             Internal.crypto.ECDHE(EKa, SPKb.privKey),
         ])
 
-        sharedSecret.set(new Uint8Array(ecRes[0]), 32)
-        sharedSecret.set(new Uint8Array(ecRes[1]), 32 * 2)
-        sharedSecret.set(new Uint8Array(ecRes[2]), 32 * 3)
+        sharedSecret.set(ecRes[0], 32)
+        sharedSecret.set(ecRes[1], 32 * 2)
+        sharedSecret.set(ecRes[2], 32 * 3)
 
         if (OPKb) {
             const ecRes4 = await Internal.crypto.ECDHE(EKa, OPKb.privKey)
-            sharedSecret.set(new Uint8Array(ecRes4), 32 * 4)
+            sharedSecret.set(ecRes4, 32 * 4)
         }
 
-        const masterKey = await Internal.HKDF(uint8ArrayToArrayBuffer(sharedSecret), new ArrayBuffer(32), 'WhisperText')
+        const masterKey = await Internal.HKDF(sharedSecret, new Uint8Array(32), 'WhisperText')
 
         const session: SessionType = {
             registrationId: message.registrationId,
@@ -223,7 +221,7 @@ export class SessionBuilder {
         return session
     }
 
-    async calculateSendingRatchet(session: SessionType, remoteKey: ArrayBuffer): Promise<void> {
+    async calculateSendingRatchet(session: SessionType, remoteKey: Uint8Array): Promise<void> {
         const ratchet = session.currentRatchet
         if (!ratchet.ephemeralKeyPair) {
             throw new Error(`Invalid ratchet - ephemeral key pair is missing`)
@@ -231,7 +229,7 @@ export class SessionBuilder {
 
         const ephPrivKey = ratchet.ephemeralKeyPair.privKey
         const rootKey = ratchet.rootKey
-        const ephPubKey = arrayBufferToBase64(ratchet.ephemeralKeyPair.pubKey)
+        const ephPubKey = uint8ArrayToBase64(ratchet.ephemeralKeyPair.pubKey)
         if (!(ephPrivKey && ephPubKey && rootKey)) {
             throw new Error(`Missing key, cannot calculate sending ratchet`)
         }
@@ -258,12 +256,12 @@ export class SessionBuilder {
     async processV3(record: SessionRecord, message: PreKeySignalMessage): Promise<number | void> {
         const trusted = this.storage.isTrustedIdentity(
             this.remoteAddress.name,
-            uint8ArrayToArrayBuffer(message.identityKey!),
+            message.identityKey!,
             Direction.RECEIVING
         )
 
         if (!trusted) {
-            throw new Error(`Unknown identity key: ${uint8ArrayToArrayBuffer(message.identityKey!)}`)
+            throw new Error(`Unknown identity key: ${message.identityKey!}`)
         }
         const [preKeyPair, signedPreKeyPair] = await Promise.all([
             this.storage.loadPreKey(message.preKeyId!),
@@ -296,7 +294,7 @@ export class SessionBuilder {
 
         const new_session = await this.startSessionWthPreKeyMessage(preKeyPair, signedPreKeyPair, message)
         record.updateSessionState(new_session)
-        await this.storage.saveIdentity(this.remoteAddress.toString(), uint8ArrayToArrayBuffer(message.identityKey!))
+        await this.storage.saveIdentity(this.remoteAddress.toString(), message.identityKey!)
 
         return message.preKeyId
     }

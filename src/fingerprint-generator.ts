@@ -7,9 +7,9 @@ export class FingerprintGenerator implements FingerprintGeneratorType {
 
     async createFor(
         localIdentifier: string,
-        localIdentityKey: ArrayBuffer,
+        localIdentityKey: Uint8Array,
         remoteIdentifier: string,
-        remoteIdentityKey: ArrayBuffer
+        remoteIdentityKey: Uint8Array
     ): Promise<string> {
         const localStr = await getDisplayStringFor(localIdentifier, localIdentityKey, this._iterations)
         const remoteStr = await getDisplayStringFor(remoteIdentifier, remoteIdentityKey, this._iterations)
@@ -22,11 +22,11 @@ export class FingerprintGenerator implements FingerprintGeneratorType {
     }
 }
 
-async function getDisplayStringFor(identifier: string, key: ArrayBuffer, iterations: number): Promise<string> {
-    const bytes = concatArrayBuffers([
-        shortToArrayBuffer(FingerprintGenerator.VERSION),
+async function getDisplayStringFor(identifier: string, key: Uint8Array, iterations: number): Promise<string> {
+    const bytes = concatUint8Arrays([
+        shortToUint8Array(FingerprintGenerator.VERSION),
         key,
-        utils.binaryStringToArrayBuffer(identifier),
+        utils.binaryStringToUint8Array(identifier),
     ])
 
     const hash = await iterateHash(bytes, key, iterations)
@@ -41,14 +41,13 @@ async function getDisplayStringFor(identifier: string, key: ArrayBuffer, iterati
     )
 }
 
-async function iterateHash(data: ArrayBuffer, key: ArrayBuffer, count: number): Promise<ArrayBuffer> {
-    const data1 = concatArrayBuffers([data, key])
+async function iterateHash(data: Uint8Array, key: Uint8Array, count: number): Promise<Uint8Array> {
+    const data1 = concatUint8Arrays([data, key])
     const result = await webcrypto.subtle.digest({ name: 'SHA-512' }, data1)
-
     if (--count === 0) {
-        return result
+        return new Uint8Array(result)
     } else {
-        return iterateHash(result, key, count)
+        return iterateHash(new Uint8Array(result), key, count)
     }
 }
 
@@ -67,18 +66,17 @@ function getEncodedChunk(hash: Uint8Array, offset: number): string {
     return s
 }
 
-function shortToArrayBuffer(number) {
-    return new Uint16Array([number]).buffer
+function shortToUint8Array(number: number): Uint8Array {
+    return new Uint8Array(new Uint16Array([number]).buffer)
 }
 
-function concatArrayBuffers(bufs: ArrayBuffer[]): ArrayBuffer {
-    const lengths = bufs.map((b) => b.byteLength)
+function concatUint8Arrays(bufs: Uint8Array[]): Uint8Array {
+    const lengths = bufs.map((b) => b.length)
     const totalLength = lengths.reduce((p, c) => p + c, 0)
     const result = new Uint8Array(totalLength)
     lengths.reduce((p, c, i) => {
-        result.set(new Uint8Array(bufs[i]), p)
+        result.set(bufs[i], p)
         return p + c
     }, 0)
-
-    return result.buffer
+    return result
 }
