@@ -1,19 +1,17 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
-import { arrayBufferToBase64, base64ToArrayBuffer } from './helpers'
-
 import * as util from './helpers'
-import { KeyPairType } from './types'
 import {
-    SessionType,
     BaseKeyType,
-    PendingPreKey,
     Chain,
-    OldRatchetInfo,
-    Ratchet,
     IndexInfo,
+    OldRatchetInfo,
+    PendingPreKey,
+    Ratchet,
     RecordType,
+    SessionType,
 } from './session-types'
+import { KeyPairType } from './types'
 
 const ARCHIVED_STATES_MAX_LENGTH = 40
 const OLD_RATCHETS_MAX_LENGTH = 10
@@ -80,7 +78,7 @@ export class SessionRecord implements RecordType {
         const record = new SessionRecord()
         record.sessions = {}
         for (const k of Object.keys(data.sessions)) {
-            record.sessions[k] = sessionTypeStringToArrayBuffer(data.sessions[k])
+            record.sessions[k] = sessionTypeStringToUint8Array(data.sessions[k])
         }
         if (
             record.sessions === undefined ||
@@ -96,7 +94,7 @@ export class SessionRecord implements RecordType {
     serialize(): string {
         const sessions: { [k: string]: SessionType<string> } = {}
         for (const k of Object.keys(this.sessions)) {
-            sessions[k] = sessionTypeArrayBufferToString(this.sessions[k])
+            sessions[k] = sessionTypeUint8ArrayToString(this.sessions[k])
         }
         const json = {
             sessions,
@@ -110,8 +108,8 @@ export class SessionRecord implements RecordType {
         return !!openSession && typeof openSession.registrationId === 'number'
     }
 
-    getSessionByBaseKey(baseKey: ArrayBuffer): SessionType | undefined {
-        const idx = util.arrayBufferToString(baseKey)
+    getSessionByBaseKey(baseKey: Uint8Array): SessionType | undefined {
+        const idx = util.uint8ArrayToBinaryString(baseKey)
         if (!idx) {
             return undefined
         }
@@ -122,11 +120,11 @@ export class SessionRecord implements RecordType {
         return session
     }
 
-    getSessionByRemoteEphemeralKey(remoteEphemeralKey: ArrayBuffer): SessionType | undefined {
+    getSessionByRemoteEphemeralKey(remoteEphemeralKey: Uint8Array): SessionType | undefined {
         this.detectDuplicateOpenSessions()
         const sessions = this.sessions
 
-        const searchKey = util.arrayBufferToString(remoteEphemeralKey)
+        const searchKey = util.uint8ArrayToBinaryString(remoteEphemeralKey)
 
         if (searchKey) {
             let openSession
@@ -180,7 +178,7 @@ export class SessionRecord implements RecordType {
 
         this.removeOldChains(session)
 
-        const idx = session.indexInfo.baseKey && util.arrayBufferToString(session.indexInfo.baseKey)
+        const idx = session.indexInfo.baseKey && util.uint8ArrayToBinaryString(session.indexInfo.baseKey)
         if (!idx) {
             throw new Error(`invalid index for session`)
         }
@@ -234,7 +232,7 @@ export class SessionRecord implements RecordType {
                     index = i
                 }
             }
-            const idx = util.arrayBufferToString(oldest.ephemeralKey)
+            const idx = util.uint8ArrayToBinaryString(oldest.ephemeralKey)
             if (!idx) {
                 throw new Error(`invalid index for chain`)
             }
@@ -271,161 +269,161 @@ export class SessionRecord implements RecordType {
 }
 
 // Serialization helpers
-function toAB(s: string): ArrayBuffer {
-    return base64ToArrayBuffer(s)
+function toUA(s: string): Uint8Array {
+    return util.base64ToUint8Array(s)
 }
-function abToS(b: ArrayBuffer): string {
-    return arrayBufferToBase64(b)
+function uaToS(b: Uint8Array): string {
+    return util.uint8ArrayToBase64(b)
 }
 
-export function keyPairStirngToArrayBuffer(kp: KeyPairType<string>): KeyPairType<ArrayBuffer> {
+export function keyPairStringToUint8Array(kp: KeyPairType<string>): KeyPairType<Uint8Array> {
     return {
-        pubKey: toAB(kp.pubKey),
-        privKey: toAB(kp.privKey),
+        pubKey: toUA(kp.pubKey),
+        privKey: toUA(kp.privKey),
     }
 }
 
-export function keyPairArrayBufferToString(kp: KeyPairType<ArrayBuffer>): KeyPairType<string> {
+export function keyPairUint8ArrayToString(kp: KeyPairType<Uint8Array>): KeyPairType<string> {
     return {
-        pubKey: abToS(kp.pubKey),
-        privKey: abToS(kp.privKey),
+        pubKey: uaToS(kp.pubKey),
+        privKey: uaToS(kp.privKey),
     }
 }
 
-export function pendingPreKeyStringToArrayBuffer(ppk: PendingPreKey<string>): PendingPreKey<ArrayBuffer> {
+export function pendingPreKeyStringToUint8Array(ppk: PendingPreKey<string>): PendingPreKey<Uint8Array> {
     const { preKeyId, signedKeyId } = ppk
     return {
-        baseKey: toAB(ppk.baseKey),
+        baseKey: toUA(ppk.baseKey),
         preKeyId,
         signedKeyId,
     }
 }
 
-export function pendingPreKeyArrayBufferToString(ppk: PendingPreKey<ArrayBuffer>): PendingPreKey<string> {
+export function pendingPreKeyUint8ArrayToString(ppk: PendingPreKey<Uint8Array>): PendingPreKey<string> {
     const { preKeyId, signedKeyId } = ppk
     return {
-        baseKey: abToS(ppk.baseKey),
+        baseKey: uaToS(ppk.baseKey),
         preKeyId,
         signedKeyId,
     }
 }
 
-export function chainStringToArrayBuffer(c: Chain<string>): Chain<ArrayBuffer> {
+export function chainStringToUint8Array(c: Chain<string>): Chain<Uint8Array> {
     const { chainType, chainKey, messageKeys } = c
     const { key, counter } = chainKey
-    const newMessageKeys: { [k: number]: ArrayBuffer } = {}
+    const newMessageKeys: { [k: number]: Uint8Array } = {}
     for (const k of Object.keys(messageKeys)) {
-        newMessageKeys[k] = toAB(messageKeys[k])
+        newMessageKeys[k] = toUA(messageKeys[k])
     }
     return {
         chainType,
         chainKey: {
-            key: key ? base64ToArrayBuffer(key) : undefined,
+            key: key ? toUA(key) : undefined,
             counter,
         },
         messageKeys: newMessageKeys,
     }
 }
 
-export function chainArrayBufferToString(c: Chain<ArrayBuffer>): Chain<string> {
+export function chainUint8ArrayToString(c: Chain<Uint8Array>): Chain<string> {
     const { chainType, chainKey, messageKeys } = c
     const { key, counter } = chainKey
     const newMessageKeys: { [k: number]: string } = {}
     for (const k of Object.keys(messageKeys)) {
-        newMessageKeys[k] = abToS(messageKeys[k])
+        newMessageKeys[k] = uaToS(messageKeys[k])
     }
     return {
         chainType,
         chainKey: {
-            key: key ? abToS(key) : undefined,
+            key: key ? uaToS(key) : undefined,
             counter,
         },
         messageKeys: newMessageKeys,
     }
 }
 
-export function oldRatchetInfoStringToArrayBuffer(ori: OldRatchetInfo<string>): OldRatchetInfo<ArrayBuffer> {
+export function oldRatchetInfoStringToUint8Array(ori: OldRatchetInfo<string>): OldRatchetInfo<Uint8Array> {
     return {
-        ephemeralKey: toAB(ori.ephemeralKey),
+        ephemeralKey: toUA(ori.ephemeralKey),
         added: ori.added,
     }
 }
 
-export function oldRatchetInfoArrayBufferToString(ori: OldRatchetInfo<ArrayBuffer>): OldRatchetInfo<string> {
+export function oldRatchetInfoUint8ArrayToString(ori: OldRatchetInfo<Uint8Array>): OldRatchetInfo<string> {
     return {
-        ephemeralKey: abToS(ori.ephemeralKey),
+        ephemeralKey: uaToS(ori.ephemeralKey),
         added: ori.added,
     }
 }
 
-export function ratchetStringToArrayBuffer(r: Ratchet<string>): Ratchet<ArrayBuffer> {
+export function ratchetStringToUint8Array(r: Ratchet<string>): Ratchet<Uint8Array> {
     return {
-        rootKey: toAB(r.rootKey),
-        ephemeralKeyPair: r.ephemeralKeyPair && keyPairStirngToArrayBuffer(r.ephemeralKeyPair),
-        lastRemoteEphemeralKey: toAB(r.lastRemoteEphemeralKey),
+        rootKey: toUA(r.rootKey),
+        ephemeralKeyPair: r.ephemeralKeyPair && keyPairStringToUint8Array(r.ephemeralKeyPair),
+        lastRemoteEphemeralKey: toUA(r.lastRemoteEphemeralKey),
         previousCounter: r.previousCounter,
         added: r.added,
     }
 }
 
-export function ratchetArrayBufferToString(r: Ratchet<ArrayBuffer>): Ratchet<string> {
+export function ratchetUint8ArrayToString(r: Ratchet<Uint8Array>): Ratchet<string> {
     return {
-        rootKey: abToS(r.rootKey),
-        ephemeralKeyPair: r.ephemeralKeyPair && keyPairArrayBufferToString(r.ephemeralKeyPair),
-        lastRemoteEphemeralKey: abToS(r.lastRemoteEphemeralKey),
+        rootKey: uaToS(r.rootKey),
+        ephemeralKeyPair: r.ephemeralKeyPair && keyPairUint8ArrayToString(r.ephemeralKeyPair),
+        lastRemoteEphemeralKey: uaToS(r.lastRemoteEphemeralKey),
         previousCounter: r.previousCounter,
         added: r.added,
     }
 }
 
-export function indexInfoStringToArrayBuffer(ii: IndexInfo<string>): IndexInfo<ArrayBuffer> {
+export function indexInfoStringToUint8Array(ii: IndexInfo<string>): IndexInfo<Uint8Array> {
     const { closed, remoteIdentityKey, baseKey, baseKeyType } = ii
     return {
         closed,
-        remoteIdentityKey: toAB(remoteIdentityKey),
-        baseKey: baseKey ? toAB(baseKey) : undefined,
+        remoteIdentityKey: toUA(remoteIdentityKey),
+        baseKey: baseKey ? toUA(baseKey) : undefined,
         baseKeyType,
     }
 }
 
-export function indexInfoArrayBufferToString(ii: IndexInfo<ArrayBuffer>): IndexInfo<string> {
+export function indexInfoUint8ArrayToString(ii: IndexInfo<Uint8Array>): IndexInfo<string> {
     const { closed, remoteIdentityKey, baseKey, baseKeyType } = ii
     return {
         closed,
-        remoteIdentityKey: abToS(remoteIdentityKey),
-        baseKey: baseKey ? abToS(baseKey) : undefined,
+        remoteIdentityKey: uaToS(remoteIdentityKey),
+        baseKey: baseKey ? uaToS(baseKey) : undefined,
         baseKeyType,
     }
 }
 
-export function sessionTypeStringToArrayBuffer(sess: SessionType<string>): SessionType<ArrayBuffer> {
+export function sessionTypeStringToUint8Array(sess: SessionType<string>): SessionType<Uint8Array> {
     const { indexInfo, registrationId, currentRatchet, pendingPreKey, oldRatchetList, chains } = sess
-    const newChains: { [ephKeyString: string]: Chain<ArrayBuffer> } = {}
+    const newChains: { [ephKeyString: string]: Chain<Uint8Array> } = {}
     for (const k of Object.keys(chains)) {
-        newChains[k] = chainStringToArrayBuffer(chains[k])
+        newChains[k] = chainStringToUint8Array(chains[k])
     }
     return {
-        indexInfo: indexInfoStringToArrayBuffer(indexInfo),
+        indexInfo: indexInfoStringToUint8Array(indexInfo),
         registrationId,
-        currentRatchet: ratchetStringToArrayBuffer(currentRatchet),
-        pendingPreKey: pendingPreKey ? pendingPreKeyStringToArrayBuffer(pendingPreKey) : undefined,
-        oldRatchetList: oldRatchetList.map(oldRatchetInfoStringToArrayBuffer),
+        currentRatchet: ratchetStringToUint8Array(currentRatchet),
+        pendingPreKey: pendingPreKey ? pendingPreKeyStringToUint8Array(pendingPreKey) : undefined,
+        oldRatchetList: oldRatchetList.map(oldRatchetInfoStringToUint8Array),
         chains: newChains,
     }
 }
 
-export function sessionTypeArrayBufferToString(sess: SessionType<ArrayBuffer>): SessionType<string> {
+export function sessionTypeUint8ArrayToString(sess: SessionType<Uint8Array>): SessionType<string> {
     const { indexInfo, registrationId, currentRatchet, pendingPreKey, oldRatchetList, chains } = sess
     const newChains: { [ephKeyString: string]: Chain<string> } = {}
     for (const k of Object.keys(chains)) {
-        newChains[k] = chainArrayBufferToString(chains[k])
+        newChains[k] = chainUint8ArrayToString(chains[k])
     }
     return {
-        indexInfo: indexInfoArrayBufferToString(indexInfo),
+        indexInfo: indexInfoUint8ArrayToString(indexInfo),
         registrationId,
-        currentRatchet: ratchetArrayBufferToString(currentRatchet),
-        pendingPreKey: pendingPreKey ? pendingPreKeyArrayBufferToString(pendingPreKey) : undefined,
-        oldRatchetList: oldRatchetList.map(oldRatchetInfoArrayBufferToString),
+        currentRatchet: ratchetUint8ArrayToString(currentRatchet),
+        pendingPreKey: pendingPreKey ? pendingPreKeyUint8ArrayToString(pendingPreKey) : undefined,
+        oldRatchetList: oldRatchetList.map(oldRatchetInfoUint8ArrayToString),
         chains: newChains,
     }
 }

@@ -9,13 +9,13 @@ const CHAIN_KEY_SEED = new Uint8Array([0x02])
  */
 export class SenderChainKey {
     private readonly iteration: number
-    private readonly chainKey: ArrayBuffer
+    private readonly chainKey: Uint8Array
 
     /**
      * @param iteration The current iteration of the chain
      * @param chainKey The current chain key value
      */
-    constructor(iteration: number, chainKey: ArrayBuffer) {
+    constructor(iteration: number, chainKey: Uint8Array) {
         this.iteration = iteration
         this.chainKey = chainKey
     }
@@ -46,7 +46,7 @@ export class SenderChainKey {
     /**
      * Returns the raw chain key seed.
      */
-    getSeed(): ArrayBuffer {
+    getSeed(): Uint8Array {
         return this.chainKey
     }
 }

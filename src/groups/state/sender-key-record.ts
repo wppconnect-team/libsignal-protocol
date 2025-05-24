@@ -10,10 +10,10 @@ export class SenderKeyRecord {
     private senderKeyStates: SenderKeyState[] = []
 
     /**
-     * Creates a SenderKeyRecord from a serialized ArrayBuffer (protobuf).
+     * Creates a SenderKeyRecord from a serialized Uint8Array (protobuf).
      */
-    static fromSerialized(buffer: ArrayBuffer): SenderKeyRecord {
-        const decoded = SenderKeyRecordStructure.decode(new Uint8Array(buffer))
+    static fromSerialized(buffer: Uint8Array): SenderKeyRecord {
+        const decoded = SenderKeyRecordStructure.decode(buffer)
         const record = new SenderKeyRecord()
         for (const stateStruct of decoded.senderKeyStates) {
             record.senderKeyStates.push(SenderKeyState.fromProto(stateStruct))
@@ -22,13 +22,13 @@ export class SenderKeyRecord {
     }
 
     /**
-     * Serializes the SenderKeyRecord to an ArrayBuffer (protobuf).
+     * Serializes the SenderKeyRecord to a Uint8Array (protobuf).
      */
-    serialize(): ArrayBuffer {
+    serialize(): Uint8Array {
         const protoStates: SenderKeyStateStructure[] = this.senderKeyStates.map((s) => s.toProto())
         const proto = SenderKeyRecordStructure.create({ senderKeyStates: protoStates })
         const encoded = SenderKeyRecordStructure.encode(proto).finish()
-        return encoded.buffer.slice(encoded.byteOffset, encoded.byteOffset + encoded.byteLength)
+        return new Uint8Array(encoded.buffer, encoded.byteOffset, encoded.byteLength)
     }
 
     /**
@@ -63,7 +63,7 @@ export class SenderKeyRecord {
     /**
      * Adds a new SenderKeyState to the record.
      */
-    addSenderKeyState(id: number, iteration: number, chainKey: ArrayBuffer, signatureKey: ArrayBuffer): void {
+    addSenderKeyState(id: number, iteration: number, chainKey: Uint8Array, signatureKey: Uint8Array): void {
         this.senderKeyStates.unshift(new SenderKeyState(id, iteration, chainKey, signatureKey))
         if (this.senderKeyStates.length > MAX_STATES) {
             this.senderKeyStates.pop()
@@ -76,8 +76,8 @@ export class SenderKeyRecord {
     setSenderKeyState(
         id: number,
         iteration: number,
-        chainKey: ArrayBuffer,
-        signatureKey: { pubKey: ArrayBuffer; privKey: ArrayBuffer }
+        chainKey: Uint8Array,
+        signatureKey: { pubKey: Uint8Array; privKey: Uint8Array }
     ): void {
         this.senderKeyStates = [new SenderKeyState(id, iteration, chainKey, signatureKey)]
     }

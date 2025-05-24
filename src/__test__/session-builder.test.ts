@@ -6,7 +6,7 @@ import { SessionRecord } from '../session-record'
 import { SignalProtocolAddress } from '../signal-protocol-address'
 import { SignalProtocolStore } from './storage-type'
 
-import { generateIdentity, generatePreKeyBundle, assertEqualArrayBuffers } from '../__test-utils__/utils'
+import { generateIdentity, generatePreKeyBundle } from '../__test-utils__/utils'
 import * as utils from '../helpers'
 import { KeyHelper } from '../key-helper'
 
@@ -28,11 +28,9 @@ describe('basic prekey v3', function () {
         return builder.processPreKey(preKeyBundle)
     })
 
-    const originalMessage = <ArrayBuffer>utils.binaryStringToArrayBuffer("L'homme est condamné à être libre")
-    const nextMessage = <ArrayBuffer>(
-        utils.binaryStringToArrayBuffer(
-            "condamné parce qu'il ne s'est pas crée lui-même, et par ailleurs cependant libre parce qu'une fois jeté dans le monde, il est responsable de tout ce qu'il fait."
-        )
+    const originalMessage = utils.binaryStringToUint8Array("L'homme est condamné à être libre")
+    const nextMessage = utils.binaryStringToUint8Array(
+        "condamné parce qu'il ne s'est pas crée lui-même, et par ailleurs cependant libre parce qu'une fois jeté dans le monde, il est responsable de tout ce qu'il fait."
     )
     const aliceSessionCipher = new SessionCipher(aliceStore, BOB_ADDRESS)
     const bobSessionCipher = new SessionCipher(bobStore, ALICE_ADDRESS)
@@ -49,7 +47,7 @@ describe('basic prekey v3', function () {
         const ciphertext = await aliceSessionCipher.encrypt(originalMessage)
         expect(ciphertext.type).toBe(3) // PREKEY_BUNDLE
         const plaintext = await bobSessionCipher.decryptPreKeyWhisperMessage(ciphertext.body!, 'binary')
-        assertEqualArrayBuffers(plaintext, originalMessage) // assertEqualArrayBuffers(plaintext, originalMessage)
+        expect(utils.isEqual(plaintext, originalMessage)).toBeTruthy()
     })
 
     test('basic v3 NO PREKEY: the session can decrypt multiple v3 messages', async () => {
@@ -58,15 +56,15 @@ describe('basic prekey v3', function () {
         const ciphertext1 = await aliceSessionCipher.encrypt(nextMessage)
         expect(ciphertext1.type).toBe(3) // PREKEY_BUNDLE
         const plaintext0 = await bobSessionCipher.decryptPreKeyWhisperMessage(ciphertext0.body!, 'binary')
-        assertEqualArrayBuffers(plaintext0, originalMessage)
+        expect(utils.isEqual(plaintext0, originalMessage)).toBeTruthy()
         const plaintext1 = await bobSessionCipher.decryptPreKeyWhisperMessage(ciphertext1.body!, 'binary')
-        assertEqualArrayBuffers(plaintext1, nextMessage)
+        expect(utils.isEqual(plaintext1, nextMessage)).toBeTruthy()
     })
 
     test('basic prekey v3: the session can decrypt', async () => {
         const ciphertext = await bobSessionCipher.encrypt(originalMessage)
         const plaintext = await aliceSessionCipher.decryptWhisperMessage(ciphertext.body!, 'binary')
-        assertEqualArrayBuffers(plaintext, originalMessage)
+        expect(utils.isEqual(plaintext, originalMessage)).toBeTruthy()
     })
 
     test('basic prekey v3: accepts a new preKey with the same identity', async () => {
@@ -89,8 +87,8 @@ describe('basic prekey v3', function () {
                 registrationId: 12356,
                 signedPreKey: {
                     keyId: 2,
-                    publicKey: new Uint8Array(33).buffer,
-                    signature: new Uint8Array(32).buffer,
+                    publicKey: new Uint8Array(33),
+                    signature: new Uint8Array(32),
                 },
             })
         }).rejects.toThrow('Identity key changed')
@@ -112,11 +110,9 @@ describe('basic v3 NO PREKEY', function () {
         return builder.processPreKey(preKeyBundle)
     })
 
-    const originalMessage = <ArrayBuffer>utils.binaryStringToArrayBuffer("L'homme est condamné à être libre")
-    const nextMessage = <ArrayBuffer>(
-        utils.binaryStringToArrayBuffer(
-            "condamné parce qu'il ne s'est pas crée lui-même, et par ailleurs cependant libre parce qu'une fois jeté dans le monde, il est responsable de tout ce qu'il fait."
-        )
+    const originalMessage = utils.binaryStringToUint8Array("L'homme est condamné à être libre")
+    const nextMessage = utils.binaryStringToUint8Array(
+        "condamné parce qu'il ne s'est pas crée lui-même, et par ailleurs cependant libre parce qu'une fois jeté dans le monde, il est responsable de tout ce qu'il fait."
     )
     const aliceSessionCipher = new SessionCipher(aliceStore, BOB_ADDRESS)
     const bobSessionCipher = new SessionCipher(bobStore, ALICE_ADDRESS)
@@ -135,7 +131,7 @@ describe('basic v3 NO PREKEY', function () {
 
         const plaintext = await bobSessionCipher.decryptPreKeyWhisperMessage(ciphertext.body!, 'binary')
 
-        assertEqualArrayBuffers(plaintext, originalMessage)
+        expect(utils.isEqual(plaintext, originalMessage)).toBeTruthy()
     })
 
     test('basic v3 NO PREKEY: the session can decrypt multiple v3 messages', async () => {
@@ -144,15 +140,15 @@ describe('basic v3 NO PREKEY', function () {
         const ciphertext1 = await aliceSessionCipher.encrypt(nextMessage)
         expect(ciphertext1.type).toBe(3) // PREKEY_BUNDLE
         const plaintext0 = await bobSessionCipher.decryptPreKeyWhisperMessage(ciphertext0.body!, 'binary')
-        assertEqualArrayBuffers(plaintext0, originalMessage)
+        expect(utils.isEqual(plaintext0, originalMessage)).toBeTruthy()
         const plaintext1 = await bobSessionCipher.decryptPreKeyWhisperMessage(ciphertext1.body!, 'binary')
-        assertEqualArrayBuffers(plaintext1, nextMessage)
+        expect(utils.isEqual(plaintext1, nextMessage)).toBeTruthy()
     })
 
     test('basic v3 NO PREKEY: the session can decrypt', async () => {
         const ciphertext = await bobSessionCipher.encrypt(originalMessage)
         const plaintext = await aliceSessionCipher.decryptWhisperMessage(ciphertext.body!, 'binary')
-        assertEqualArrayBuffers(plaintext, originalMessage)
+        expect(utils.isEqual(plaintext, originalMessage)).toBeTruthy()
     })
 
     test('basic v3 NO PREKEY: accepts a new preKey with the same identity', async () => {
@@ -176,8 +172,8 @@ describe('basic v3 NO PREKEY', function () {
                 registrationId: 12356,
                 signedPreKey: {
                     keyId: 2,
-                    publicKey: new Uint8Array(33).buffer,
-                    signature: new Uint8Array(32).buffer,
+                    publicKey: new Uint8Array(33),
+                    signature: new Uint8Array(32),
                 },
             })
         }).rejects.toThrow('Identity key changed')

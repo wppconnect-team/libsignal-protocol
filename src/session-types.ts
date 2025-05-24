@@ -10,7 +10,7 @@ export enum BaseKeyType {
     THEIRS = 2,
 }
 
-export interface SessionType<T = ArrayBuffer> {
+export interface SessionType<T = Uint8Array> {
     indexInfo: IndexInfo<T>
     registrationId?: number
     currentRatchet: Ratchet<T>
@@ -59,11 +59,11 @@ export enum EncryptionResultMessageType {
 
 export interface EncryptionResult {
     type: EncryptionResultMessageType
-    body: ArrayBuffer
+    body: Uint8Array
     registrationId: number
 }
 
-export interface DeviceType<T = ArrayBuffer> {
+export interface DeviceType<T = Uint8Array> {
     identityKey: T
     signedPreKey: SignedPublicPreKeyType<T>
     preKey?: PreKeyType<T>
@@ -74,8 +74,8 @@ export interface RecordType {
     archiveCurrentState: () => void
     deleteAllSessions: () => void
     getOpenSession: () => SessionType | undefined
-    getSessionByBaseKey: (baseKey: ArrayBuffer) => SessionType | undefined
-    getSessionByRemoteEphemeralKey: (remoteEphemeralKey: ArrayBuffer) => SessionType | undefined
+    getSessionByBaseKey: (baseKey: Uint8Array) => SessionType | undefined
+    getSessionByRemoteEphemeralKey: (remoteEphemeralKey: Uint8Array) => SessionType | undefined
     getSessions: () => SessionType[]
     haveOpenSession: () => boolean
     promoteState: (session: SessionType) => void

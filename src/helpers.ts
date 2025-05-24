@@ -1,42 +1,16 @@
-export function arrayBufferToString(b: ArrayBuffer): string {
-    return uint8ArrayToString(new Uint8Array(b))
+export function uint8ArrayToBinaryString(arr: Uint8Array): string {
+    return Buffer.from(arr).toString('binary')
+}
+export function binaryStringToUint8Array(str: string): Uint8Array {
+    return Buffer.from(str, 'binary')
 }
 
-export function uint8ArrayToString(arr: Uint8Array): string {
-    const end = arr.length
-    let begin = 0
-    if (begin === end) return ''
-    let chars: number[] = []
-    const parts: string[] = []
-    while (begin < end) {
-        chars.push(arr[begin++])
-        if (chars.length >= 1024) {
-            parts.push(String.fromCharCode(...chars))
-            chars = []
-        }
-    }
-    return parts.join('') + String.fromCharCode(...chars)
-}
-export function binaryStringToArrayBuffer(str: string): ArrayBuffer {
-    let i = 0
-    const k = str.length
-    let charCode
-    const bb: number[] = []
-    while (i < k) {
-        charCode = str.charCodeAt(i)
-        if (charCode > 0xff) throw RangeError('illegal char code: ' + charCode)
-        bb[i++] = charCode
-    }
-    return Uint8Array.from(bb).buffer
-}
-
-export function isEqual(a: ArrayBuffer | undefined, b: ArrayBuffer | undefined): boolean {
-    // TODO: Special-case arraybuffers, etc
+export function isEqual(a: Uint8Array | undefined, b: Uint8Array | undefined): boolean {
     if (a === undefined || b === undefined) {
         return false
     }
-    const a1: string = arrayBufferToString(a)
-    const b1: string = arrayBufferToString(b)
+    const a1: string = uint8ArrayToBinaryString(a)
+    const b1: string = uint8ArrayToBinaryString(b)
     const maxLength = Math.max(a1.length, b1.length)
     if (maxLength < 5) {
         throw new Error('a/b compare too short')
@@ -49,20 +23,19 @@ export function uint8ArrayToArrayBuffer(arr: Uint8Array): ArrayBuffer {
 }
 
 /**
- * Converts a base64 string to an ArrayBuffer using Node.js Buffer.
+ * Converts a base64 string to a Uint8Array.
  * @param b64 base64 encoded string
- * @returns ArrayBuffer
+ * @returns Uint8Array
  */
-export function base64ToArrayBuffer(b64: string): ArrayBuffer {
-    const buf = Buffer.from(b64, 'base64')
-    return uint8ArrayToArrayBuffer(buf)
+export function base64ToUint8Array(b64: string): Uint8Array {
+    return Uint8Array.from(Buffer.from(b64, 'base64'))
 }
 
 /**
- * Converts an ArrayBuffer to a base64 string using Node.js Buffer.
- * @param buffer ArrayBuffer
+ * Converts a Uint8Array to a base64 string.
+ * @param buffer Uint8Array
  * @returns base64 encoded string
  */
-export function arrayBufferToBase64(buffer: ArrayBuffer): string {
+export function uint8ArrayToBase64(buffer: Uint8Array): string {
     return Buffer.from(buffer).toString('base64')
 }

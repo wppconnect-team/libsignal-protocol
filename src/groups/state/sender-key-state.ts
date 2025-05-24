@@ -15,9 +15,9 @@ const MAX_MESSAGE_KEYS = 2000
 export class SenderKeyState {
     private keyId: number
     private senderChainKey: SenderChainKey
-    private signingKeyPublic: ArrayBuffer
-    private signingKeyPrivate?: ArrayBuffer
-    private senderMessageKeys: { iteration: number; seed: ArrayBuffer }[] = []
+    private signingKeyPublic: Uint8Array
+    private signingKeyPrivate?: Uint8Array
+    private senderMessageKeys: { iteration: number; seed: Uint8Array }[] = []
 
     /**
      * @param id The key ID
@@ -28,8 +28,8 @@ export class SenderKeyState {
     constructor(
         id: number,
         iteration: number,
-        chainKey: ArrayBuffer,
-        signatureKey: ArrayBuffer | { pubKey: ArrayBuffer; privKey: ArrayBuffer }
+        chainKey: Uint8Array,
+        signatureKey: Uint8Array | { pubKey: Uint8Array; privKey: Uint8Array }
     ) {
         this.keyId = id
         this.senderChainKey = new SenderChainKey(iteration, chainKey)
@@ -37,7 +37,7 @@ export class SenderKeyState {
             this.signingKeyPublic = signatureKey.pubKey
             this.signingKeyPrivate = signatureKey.privKey
         } else {
-            this.signingKeyPublic = signatureKey as ArrayBuffer
+            this.signingKeyPublic = signatureKey as Uint8Array
         }
     }
 
@@ -49,24 +49,9 @@ export class SenderKeyState {
         const chainKeyStruct = proto.senderChainKey as SenderKeyStateStructure_SenderChainKey
         const signingKeyStruct = proto.senderSigningKey as SenderKeyStateStructure_SenderSigningKey
         const iteration = chainKeyStruct?.iteration ?? 0
-        const chainKey = chainKeyStruct?.seed
-            ? chainKeyStruct.seed.buffer.slice(
-                  chainKeyStruct.seed.byteOffset,
-                  chainKeyStruct.seed.byteOffset + chainKeyStruct.seed.byteLength
-              )
-            : new ArrayBuffer(0)
-        const signingKeyPublic = signingKeyStruct?.public
-            ? signingKeyStruct.public.buffer.slice(
-                  signingKeyStruct.public.byteOffset,
-                  signingKeyStruct.public.byteOffset + signingKeyStruct.public.byteLength
-              )
-            : new ArrayBuffer(0)
-        const signingKeyPrivate = signingKeyStruct?.private
-            ? signingKeyStruct.private.buffer.slice(
-                  signingKeyStruct.private.byteOffset,
-                  signingKeyStruct.private.byteOffset + signingKeyStruct.private.byteLength
-              )
-            : undefined
+        const chainKey = chainKeyStruct?.seed || new Uint8Array(0)
+        const signingKeyPublic = signingKeyStruct?.public || new Uint8Array(0)
+        const signingKeyPrivate = signingKeyStruct?.private || undefined
         const state = new SenderKeyState(
             keyId,
             iteration,
@@ -79,7 +64,7 @@ export class SenderKeyState {
                 if (mk.seed) {
                     state.senderMessageKeys.push({
                         iteration: mk.iteration ?? 0,
-                        seed: mk.seed.buffer.slice(mk.seed.byteOffset, mk.seed.byteOffset + mk.seed.byteLength),
+                        seed: mk.seed,
                     })
                 }
             }
@@ -136,14 +121,14 @@ export class SenderKeyState {
     /**
      * Returns the public signing key.
      */
-    getSigningKeyPublic(): ArrayBuffer {
+    getSigningKeyPublic(): Uint8Array {
         return this.signingKeyPublic
     }
 
     /**
      * Returns the private signing key, if available.
      */
-    getSigningKeyPrivate(): ArrayBuffer | undefined {
+    getSigningKeyPrivate(): Uint8Array | undefined {
         return this.signingKeyPrivate
     }
 

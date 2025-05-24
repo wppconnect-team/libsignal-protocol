@@ -8,8 +8,6 @@ import * as Internal from './internal'
 import { SessionRecord } from './session-record'
 import { SessionLock } from './session-lock'
 import { SessionBuilder } from './session-builder'
-import { uint8ArrayToArrayBuffer } from './helpers'
-import { arrayBufferToBase64 } from './helpers'
 
 export interface MessageType {
     type: number
@@ -32,12 +30,12 @@ export class SessionCipher {
         return SessionRecord.deserialize(serialized)
     }
 
-    encrypt(buffer: ArrayBuffer): Promise<MessageType> {
+    encrypt(buffer: Uint8Array): Promise<MessageType> {
         return SessionLock.queueJobForNumber(this.remoteAddress.toString(), () => this.encryptJob(buffer))
     }
-    private encryptJob = async (buffer: ArrayBuffer) => {
-        if (!(buffer instanceof ArrayBuffer)) {
-            throw new Error('Expected buffer to be an ArrayBuffer')
+    private encryptJob = async (buffer: Uint8Array) => {
+        if (!(buffer instanceof Uint8Array)) {
+            throw new Error('Expected buffer to be an Uint8Array')
         }
 
         const address = this.remoteAddress.toString()
@@ -57,7 +55,7 @@ export class SessionCipher {
 
         const keys = await Internal.HKDF(
             chain.messageKeys[chain.chainKey.counter],
-            new ArrayBuffer(32),
+            new Uint8Array(32),
             'WhisperMessageKeys'
         )
 
@@ -70,17 +68,17 @@ export class SessionCipher {
         const encodedMsg = SignalMessage.encode(msg).finish()
 
         const macInput = new Uint8Array(encodedMsg.byteLength + 33 * 2 + 1)
-        macInput.set(new Uint8Array(ourIdentityKey.pubKey))
-        macInput.set(new Uint8Array(session.indexInfo.remoteIdentityKey), 33)
+        macInput.set(ourIdentityKey.pubKey)
+        macInput.set(session.indexInfo.remoteIdentityKey, 33)
         macInput[33 * 2] = (3 << 4) | 3
-        macInput.set(new Uint8Array(encodedMsg), 33 * 2 + 1)
+        macInput.set(encodedMsg, 33 * 2 + 1)
 
-        const mac = await Internal.crypto.sign(keys[1], macInput.buffer)
+        const mac = await Internal.crypto.sign(keys[1], macInput)
 
         const encodedMsgWithMAC = new Uint8Array(encodedMsg.byteLength + 9)
         encodedMsgWithMAC[0] = (3 << 4) | 3
-        encodedMsgWithMAC.set(new Uint8Array(encodedMsg), 1)
-        encodedMsgWithMAC.set(new Uint8Array(mac, 0, 8), encodedMsg.byteLength + 1)
+        encodedMsgWithMAC.set(encodedMsg, 1)
+        encodedMsgWithMAC.set(mac.slice(0, 8), encodedMsg.byteLength + 1)
 
         const trusted = await this.storage.isTrustedIdentity(
             this.remoteAddress.getName(),
@@ -111,7 +109,7 @@ export class SessionCipher {
 
             preKeyMsg.message = encodedMsgWithMAC
             const encodedPreKeyMsg = PreKeySignalMessage.encode(preKeyMsg).finish()
-            const result = String.fromCharCode((3 << 4) | 3) + util.uint8ArrayToString(encodedPreKeyMsg)
+            const result = String.fromCharCode((3 << 4) | 3) + util.uint8ArrayToBinaryString(encodedPreKeyMsg)
             return {
                 type: 3,
                 body: result,
@@ -120,7 +118,7 @@ export class SessionCipher {
         } else {
             return {
                 type: 1,
-                body: util.uint8ArrayToString(encodedMsgWithMAC),
+                body: util.uint8ArrayToBinaryString(encodedMsgWithMAC),
                 registrationId: session.registrationId,
             }
         }
@@ -143,8 +141,8 @@ export class SessionCipher {
             throw new Error(`ratchet missing ephemeralKeyPair`)
         }
 
-        msg.ratchetKey = new Uint8Array(session.currentRatchet.ephemeralKeyPair.pubKey)
-        const searchKey = arrayBufferToBase64(msg.ratchetKey)
+        msg.ratchetKey = session.currentRatchet.ephemeralKeyPair.pubKey
+        const searchKey = util.uint8ArrayToBase64(msg.ratchetKey)
 
         const chain = session.chains[searchKey]
         if (chain?.chainType === ChainType.RECEIVING) {
@@ -155,7 +153,7 @@ export class SessionCipher {
         return { session, chain }
     }
 
-    private fillMessageKeys = async (chain: Chain<ArrayBuffer>, counter: number): Promise<void> => {
+    private fillMessageKeys = async (chain: Chain<Uint8Array>, counter: number): Promise<void> => {
         if (chain.chainKey.counter >= counter) {
             return Promise.resolve() // Already calculated
         }
@@ -176,9 +174,9 @@ export class SessionCipher {
         // Compute KDF_CK as described in X3DH specification
         const byteArray = new Uint8Array(1)
         byteArray[0] = 1
-        const mac = await Internal.crypto.sign(ckey, byteArray.buffer)
+        const mac = await Internal.crypto.sign(ckey, byteArray)
         byteArray[0] = 2
-        const key = await Internal.crypto.sign(ckey, byteArray.buffer)
+        const key = await Internal.crypto.sign(ckey, byteArray)
 
         chain.messageKeys[chain.chainKey.counter + 1] = mac
         chain.chainKey.key = key
@@ -186,7 +184,7 @@ export class SessionCipher {
         await this.fillMessageKeys(chain, counter)
     }
 
-    private async calculateRatchet(session: SessionType, remoteKey: ArrayBuffer, sending: boolean) {
+    private async calculateRatchet(session: SessionType, remoteKey: Uint8Array, sending: boolean) {
         const ratchet = session.currentRatchet
 
         if (!ratchet.ephemeralKeyPair) {
@@ -194,13 +192,13 @@ export class SessionCipher {
         }
         const sharedSecret = await Internal.crypto.ECDHE(remoteKey, ratchet.ephemeralKeyPair.privKey)
         const masterKey = await Internal.HKDF(sharedSecret, ratchet.rootKey, 'WhisperRatchet')
-        let ephemeralPublicKey: ArrayBuffer
+        let ephemeralPublicKey: Uint8Array
         if (sending) {
             ephemeralPublicKey = ratchet.ephemeralKeyPair.pubKey
         } else {
             ephemeralPublicKey = remoteKey
         }
-        session.chains[arrayBufferToBase64(ephemeralPublicKey)] = {
+        session.chains[util.uint8ArrayToBase64(ephemeralPublicKey)] = {
             messageKeys: {},
             chainKey: { counter: -1, key: masterKey[1] },
             chainType: sending ? ChainType.SENDING : ChainType.RECEIVING,
@@ -208,14 +206,13 @@ export class SessionCipher {
         ratchet.rootKey = masterKey[0]
     }
 
-    async decryptPreKeyWhisperMessage(buff: string | ArrayBuffer, encoding?: string): Promise<ArrayBuffer> {
+    async decryptPreKeyWhisperMessage(buff: string | Uint8Array, encoding?: string): Promise<Uint8Array> {
         encoding = encoding || 'binary'
         if (encoding !== 'binary') {
             throw new Error(`unsupported encoding: ${encoding}`)
         }
 
-        const buffer = typeof buff === 'string' ? util.binaryStringToArrayBuffer(buff) : buff
-        const view = new Uint8Array(buffer)
+        const view = typeof buff === 'string' ? util.binaryStringToUint8Array(buff) : buff
         const version = view[0]
         const messageData = view.slice(1)
 
@@ -238,11 +235,11 @@ export class SessionCipher {
 
             // isTrustedIdentity is called within processV3, no need to call it here
             const preKeyId = await builder.processV3(record, preKeyProto)
-            const session = record.getSessionByBaseKey(uint8ArrayToArrayBuffer(preKeyProto.baseKey!))
+            const session = record.getSessionByBaseKey(preKeyProto.baseKey!)
             if (!session) {
                 throw new Error(
                     `unable to find session for base key ${
-                        (arrayBufferToBase64(preKeyProto.baseKey!), preKeyProto.baseKey!.byteLength)
+                        (util.uint8ArrayToBase64(preKeyProto.baseKey!), preKeyProto.baseKey!.byteLength)
                     }`
                 )
             }
@@ -258,11 +255,11 @@ export class SessionCipher {
         return SessionLock.queueJobForNumber(address, job)
     }
     async decryptWithSessionList(
-        buffer: ArrayBuffer,
+        buffer: Uint8Array,
         sessionList: SessionType[],
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         errors: any[]
-    ): Promise<{ plaintext: ArrayBuffer; session: SessionType }> {
+    ): Promise<{ plaintext: Uint8Array; session: SessionType }> {
         // Iterate recursively through the list, attempting to decrypt
         // using each one at a time. Stop and return the result if we get
         // a valid result
@@ -288,12 +285,12 @@ export class SessionCipher {
         }
     }
 
-    decryptWhisperMessage(buff: string | ArrayBuffer, encoding?: string): Promise<ArrayBuffer> {
+    decryptWhisperMessage(buff: string | Uint8Array, encoding?: string): Promise<Uint8Array> {
         encoding = encoding || 'binary'
         if (encoding !== 'binary') {
             throw new Error(`unsupported encoding: ${encoding}`)
         }
-        const buffer = typeof buff === 'string' ? util.binaryStringToArrayBuffer(buff) : buff
+        const buffer = typeof buff === 'string' ? util.binaryStringToUint8Array(buff) : buff
         const address = this.remoteAddress.toString()
         const job = async () => {
             const record = await this.getRecord(address)
@@ -326,7 +323,7 @@ export class SessionCipher {
         return SessionLock.queueJobForNumber(address, job)
     }
 
-    async doDecryptWhisperMessage(messageBytes: ArrayBuffer, session: SessionType): Promise<ArrayBuffer> {
+    async doDecryptWhisperMessage(messageBytes: Uint8Array, session: SessionType): Promise<Uint8Array> {
         const version = new Uint8Array(messageBytes)[0]
         if ((version & 0xf) > 3 || version >> 4 < 3) {
             // min version > 3 or max version < 3
@@ -336,7 +333,6 @@ export class SessionCipher {
         const mac = messageBytes.slice(messageBytes.byteLength - 8, messageBytes.byteLength)
 
         const message = SignalMessage.decode(new Uint8Array(messageProto))
-        const remoteEphemeralKey = uint8ArrayToArrayBuffer(message.ratchetKey!)
 
         if (session === undefined) {
             return Promise.reject(
@@ -347,11 +343,11 @@ export class SessionCipher {
             //  console.log('decrypting message for closed session')
         }
 
-        await this.maybeStepRatchet(session, remoteEphemeralKey, message.previousCounter!)
+        await this.maybeStepRatchet(session, message.ratchetKey!, message.previousCounter!)
 
-        const chain = session.chains[arrayBufferToBase64(message.ratchetKey!)]
+        const chain = session.chains[util.uint8ArrayToBase64(message.ratchetKey!)]
         if (!chain) {
-            console.warn(`no chain found for key`, { key: arrayBufferToBase64(message.ratchetKey!), session })
+            console.warn(`no chain found for key`, { key: util.uint8ArrayToBase64(message.ratchetKey!), session })
         }
         if (chain?.chainType === ChainType.SENDING) {
             throw new Error('Tried to decrypt on a sending chain')
@@ -366,7 +362,7 @@ export class SessionCipher {
             throw e
         }
         delete chain.messageKeys[message.counter!]
-        const keys = await Internal.HKDF(messageKey, new ArrayBuffer(32), 'WhisperMessageKeys')
+        const keys = await Internal.HKDF(messageKey, new Uint8Array(32), 'WhisperMessageKeys')
 
         const ourIdentityKey = await this.storage.getIdentityKeyPair()
         if (!ourIdentityKey) {
@@ -379,20 +375,16 @@ export class SessionCipher {
         macInput[33 * 2] = (3 << 4) | 3
         macInput.set(new Uint8Array(messageProto), 33 * 2 + 1)
 
-        await Internal.verifyMAC(macInput.buffer, keys[1], mac, 8)
+        await Internal.verifyMAC(macInput, keys[1], mac, 8)
 
-        const plaintext = await Internal.crypto.decrypt(
-            keys[0],
-            uint8ArrayToArrayBuffer(message.ciphertext!),
-            keys[2].slice(0, 16)
-        )
+        const plaintext = await Internal.crypto.decrypt(keys[0], message.ciphertext!, keys[2].slice(0, 16))
 
         delete session.pendingPreKey
         return plaintext
     }
 
-    async maybeStepRatchet(session: SessionType, remoteKey: ArrayBuffer, previousCounter: number): Promise<void> {
-        const remoteKeyString = arrayBufferToBase64(remoteKey)
+    async maybeStepRatchet(session: SessionType, remoteKey: Uint8Array, previousCounter: number): Promise<void> {
+        const remoteKeyString = util.uint8ArrayToBase64(remoteKey)
         if (session.chains[remoteKeyString] !== undefined) {
             return Promise.resolve()
         }
@@ -401,7 +393,7 @@ export class SessionCipher {
         if (!ratchet.ephemeralKeyPair) {
             throw new Error(`attempting to step reatchet without ephemeral key`)
         }
-        const previousRatchet = session.chains[arrayBufferToBase64(ratchet.lastRemoteEphemeralKey)]
+        const previousRatchet = session.chains[util.uint8ArrayToBase64(ratchet.lastRemoteEphemeralKey)]
         if (previousRatchet !== undefined) {
             await this.fillMessageKeys(previousRatchet, previousCounter).then(function () {
                 delete previousRatchet.chainKey.key
@@ -413,7 +405,7 @@ export class SessionCipher {
         }
 
         await this.calculateRatchet(session, remoteKey, false)
-        const previousRatchetKey = arrayBufferToBase64(ratchet.ephemeralKeyPair.pubKey)
+        const previousRatchetKey = util.uint8ArrayToBase64(ratchet.ephemeralKeyPair.pubKey)
         if (session.chains[previousRatchetKey] !== undefined) {
             ratchet.previousCounter = session.chains[previousRatchetKey].chainKey.counter
             delete session.chains[previousRatchetKey]

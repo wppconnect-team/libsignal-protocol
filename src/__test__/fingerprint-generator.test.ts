@@ -14,19 +14,19 @@ describe('NumericFingerprint', function () {
 
     const alice = {
         identifier: '+14152222222',
-        key: new Uint8Array(ALICE_IDENTITY).buffer,
+        key: new Uint8Array(ALICE_IDENTITY),
     }
     const bob = {
         identifier: '+14153333333',
-        key: new Uint8Array(BOB_IDENTITY).buffer,
+        key: new Uint8Array(BOB_IDENTITY),
     }
 
     test('returns the correct fingerprint', async () => {
         jest.setTimeout(20000)
         const generator = new FingerprintGenerator(5200)
-        const t = Date.now()
+        // const t = Date.now()
         const f = await generator.createFor(alice.identifier, alice.key, bob.identifier, bob.key)
-        console.log(`import crypto time:`, { time: Date.now() - t })
+        // console.log(`import crypto time:`, { time: Date.now() - t })
         expect(f).toBe(FINGERPRINT)
     })
 
