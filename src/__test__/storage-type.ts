@@ -84,7 +84,9 @@ export class SignalProtocolStore implements StorageType {
         if (trusted === undefined) {
             return Promise.resolve(true)
         }
-        return Promise.resolve(util.uint8ArrayToString(identityKey) === util.uint8ArrayToString(trusted as Uint8Array))
+        return Promise.resolve(
+            util.uint8ArrayToBinaryString(identityKey) === util.uint8ArrayToBinaryString(trusted as Uint8Array)
+        )
     }
     async loadPreKey(keyId: string | number): Promise<KeyPairType | undefined> {
         let res = this.get('25519KeypreKey' + keyId, undefined)
@@ -130,7 +132,10 @@ export class SignalProtocolStore implements StorageType {
             throw new Error('Identity Key is incorrect type')
         }
 
-        if (existing && util.uint8ArrayToString(identityKey) !== util.uint8ArrayToString(existing as Uint8Array)) {
+        if (
+            existing &&
+            util.uint8ArrayToBinaryString(identityKey) !== util.uint8ArrayToBinaryString(existing as Uint8Array)
+        ) {
             return true
         } else {
             return false

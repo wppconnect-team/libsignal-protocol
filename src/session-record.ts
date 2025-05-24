@@ -109,7 +109,7 @@ export class SessionRecord implements RecordType {
     }
 
     getSessionByBaseKey(baseKey: Uint8Array): SessionType | undefined {
-        const idx = util.uint8ArrayToString(baseKey)
+        const idx = util.uint8ArrayToBinaryString(baseKey)
         if (!idx) {
             return undefined
         }
@@ -124,7 +124,7 @@ export class SessionRecord implements RecordType {
         this.detectDuplicateOpenSessions()
         const sessions = this.sessions
 
-        const searchKey = util.uint8ArrayToString(remoteEphemeralKey)
+        const searchKey = util.uint8ArrayToBinaryString(remoteEphemeralKey)
 
         if (searchKey) {
             let openSession
@@ -178,7 +178,7 @@ export class SessionRecord implements RecordType {
 
         this.removeOldChains(session)
 
-        const idx = session.indexInfo.baseKey && util.uint8ArrayToString(session.indexInfo.baseKey)
+        const idx = session.indexInfo.baseKey && util.uint8ArrayToBinaryString(session.indexInfo.baseKey)
         if (!idx) {
             throw new Error(`invalid index for session`)
         }
@@ -232,7 +232,7 @@ export class SessionRecord implements RecordType {
                     index = i
                 }
             }
-            const idx = util.uint8ArrayToString(oldest.ephemeralKey)
+            const idx = util.uint8ArrayToBinaryString(oldest.ephemeralKey)
             if (!idx) {
                 throw new Error(`invalid index for chain`)
             }

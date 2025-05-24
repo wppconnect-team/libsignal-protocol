@@ -330,7 +330,10 @@ tv.forEach(function (test) {
                 } else {
                     const privKey = privKeyQueue.shift()
                     return Internal.crypto.createKeyPair(privKey).then(function (keyPair) {
-                        if (!privKey || utils.uint8ArrayToString(keyPair.privKey) != utils.uint8ArrayToString(privKey))
+                        if (
+                            !privKey ||
+                            utils.uint8ArrayToBinaryString(keyPair.privKey) != utils.uint8ArrayToBinaryString(privKey)
+                        )
                             throw new Error('Failed to rederive private key!')
                         else return keyPair
                     })

@@ -109,7 +109,7 @@ export class SessionCipher {
 
             preKeyMsg.message = encodedMsgWithMAC
             const encodedPreKeyMsg = PreKeySignalMessage.encode(preKeyMsg).finish()
-            const result = String.fromCharCode((3 << 4) | 3) + util.uint8ArrayToString(encodedPreKeyMsg)
+            const result = String.fromCharCode((3 << 4) | 3) + util.uint8ArrayToBinaryString(encodedPreKeyMsg)
             return {
                 type: 3,
                 body: result,
@@ -118,7 +118,7 @@ export class SessionCipher {
         } else {
             return {
                 type: 1,
-                body: util.uint8ArrayToString(encodedMsgWithMAC),
+                body: util.uint8ArrayToBinaryString(encodedMsgWithMAC),
                 registrationId: session.registrationId,
             }
         }

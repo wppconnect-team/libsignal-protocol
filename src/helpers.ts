@@ -1,37 +1,16 @@
-export function uint8ArrayToString(arr: Uint8Array): string {
-    const end = arr.length
-    let begin = 0
-    if (begin === end) return ''
-    let chars: number[] = []
-    const parts: string[] = []
-    while (begin < end) {
-        chars.push(arr[begin++])
-        if (chars.length >= 1024) {
-            parts.push(String.fromCharCode(...chars))
-            chars = []
-        }
-    }
-    return parts.join('') + String.fromCharCode(...chars)
+export function uint8ArrayToBinaryString(arr: Uint8Array): string {
+    return Buffer.from(arr).toString('binary')
 }
 export function binaryStringToUint8Array(str: string): Uint8Array {
-    let i = 0
-    const k = str.length
-    let charCode
-    const bb: number[] = []
-    while (i < k) {
-        charCode = str.charCodeAt(i)
-        if (charCode > 0xff) throw RangeError('illegal char code: ' + charCode)
-        bb[i++] = charCode
-    }
-    return Uint8Array.from(bb)
+    return Buffer.from(str, 'binary')
 }
 
 export function isEqual(a: Uint8Array | undefined, b: Uint8Array | undefined): boolean {
     if (a === undefined || b === undefined) {
         return false
     }
-    const a1: string = uint8ArrayToString(a)
-    const b1: string = uint8ArrayToString(b)
+    const a1: string = uint8ArrayToBinaryString(a)
+    const b1: string = uint8ArrayToBinaryString(b)
     const maxLength = Math.max(a1.length, b1.length)
     if (maxLength < 5) {
         throw new Error('a/b compare too short')
