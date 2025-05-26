@@ -1,7 +1,14 @@
 import { SignalProtocolAddressType } from '../types'
 
 /**
- * Represents a (groupId, senderId, deviceId) tuple for group messaging.
+ * Represents a unique identifier for a group sender key (Signal/libsignal).
+ *
+ * Reference: https://signal.org/docs/specifications/group/#sender-keys
+ *
+ * @example
+ * ```ts
+ * const name = new SenderKeyName(groupId, senderId)
+ * ```
  */
 export class SenderKeyName {
     private readonly groupId: string

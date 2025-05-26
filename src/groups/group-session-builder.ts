@@ -5,8 +5,15 @@ import { SenderKeyDistributionMessage } from '../protos'
 import { SessionLock } from '../session-lock'
 
 /**
- * Responsible for setting up group SenderKey encrypted sessions.
- * Sessions are constructed per (groupId, senderId, deviceId) tuple.
+ * Handles creation and management of group sessions using the Sender Key protocol (Signal/libsignal).
+ *
+ * Reference: https://signal.org/docs/specifications/group/#sender-keys
+ *
+ * @example
+ * ```ts
+ * const builder = new GroupSessionBuilder(store, senderKeyName)
+ * const distributionMsg = await builder.create()
+ * ```
  */
 export class GroupSessionBuilder {
     private senderKeyStore: SenderKeyStore

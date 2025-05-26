@@ -2,9 +2,28 @@ import { FingerprintGeneratorType } from './'
 import * as utils from './helpers'
 import { webcrypto } from 'crypto'
 
+/**
+ * Generates human-readable fingerprints for identity verification, inspired by the Signal/libsignal protocol.
+ *
+ * Reference: https://signal.org/docs/
+ *
+ * @example
+ * ```ts
+ * const gen = new FingerprintGenerator(1000)
+ * const fingerprint = await gen.createFor('alice', aliceKey, 'bob', bobKey)
+ * ```
+ */
 export class FingerprintGenerator implements FingerprintGeneratorType {
     static VERSION = 0
 
+    /**
+     * Generates a fingerprint string for two parties' identities.
+     * @param localIdentifier Local user identifier (e.g., username)
+     * @param localIdentityKey Local user's identity public key
+     * @param remoteIdentifier Remote user identifier
+     * @param remoteIdentityKey Remote user's identity public key
+     * @returns Promise resolving to a fingerprint string
+     */
     async createFor(
         localIdentifier: string,
         localIdentityKey: Uint8Array,
@@ -17,11 +36,18 @@ export class FingerprintGenerator implements FingerprintGeneratorType {
     }
 
     private _iterations: number
+    /**
+     * @param _iterations Number of hash iterations for fingerprinting (security parameter)
+     */
     constructor(_iterations: number) {
         this._iterations = _iterations
     }
 }
 
+/**
+ * Generates a display string for a given identifier and key.
+ * @private
+ */
 async function getDisplayStringFor(identifier: string, key: Uint8Array, iterations: number): Promise<string> {
     const bytes = concatUint8Arrays([
         shortToUint8Array(FingerprintGenerator.VERSION),
@@ -41,6 +67,10 @@ async function getDisplayStringFor(identifier: string, key: Uint8Array, iteratio
     )
 }
 
+/**
+ * Iteratively hashes the data with the key for a given number of rounds using SHA-512.
+ * @private
+ */
 async function iterateHash(data: Uint8Array, key: Uint8Array, count: number): Promise<Uint8Array> {
     const data1 = concatUint8Arrays([data, key])
     const result = await webcrypto.subtle.digest({ name: 'SHA-512' }, data1)
@@ -51,6 +81,10 @@ async function iterateHash(data: Uint8Array, key: Uint8Array, count: number): Pr
     }
 }
 
+/**
+ * Encodes a chunk of the hash as a 5-digit string.
+ * @private
+ */
 function getEncodedChunk(hash: Uint8Array, offset: number): string {
     const chunk =
         (hash[offset] * Math.pow(2, 32) +
@@ -66,10 +100,18 @@ function getEncodedChunk(hash: Uint8Array, offset: number): string {
     return s
 }
 
+/**
+ * Converts a short (number) to a Uint8Array (2 bytes, little-endian).
+ * @private
+ */
 function shortToUint8Array(number: number): Uint8Array {
     return new Uint8Array(new Uint16Array([number]).buffer)
 }
 
+/**
+ * Concatenates multiple Uint8Arrays into one.
+ * @private
+ */
 function concatUint8Arrays(bufs: Uint8Array[]): Uint8Array {
     const lengths = bufs.map((b) => b.length)
     const totalLength = lengths.reduce((p, c) => p + c, 0)

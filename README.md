@@ -1,6 +1,8 @@
-# Signal Protocol Typescript Library (libsignal-protocol-typescript)
+# @wppconnect/libsignal-protocol
 
-Signal Protocol Typescript implementation based on [libsignal-protocol-javscript](https://github.com/signalapp/libsignal-protocol-javascript).
+Signal Protocol Typescript library — forked from [privacyresearchgroup/libsignal-protocol-typescript](https://github.com/privacyresearchgroup/libsignal-protocol-typescript), with adaptations and improvements for the WPPConnect ecosystem.
+
+> **Note:** This project uses [`@wppconnect/curve25519`](https://www.npmjs.com/package/@wppconnect/curve25519) as the default implementation for elliptic curve operations (X25519/Ed25519).
 
 ## Code layout
 
@@ -13,71 +15,53 @@ Signal Protocol Typescript implementation based on [libsignal-protocol-javscript
 
 ## Overview
 
-A ratcheting forward secrecy protocol that works in synchronous and
-asynchronous messaging environments.
+A ratcheting forward secrecy protocol that works in synchronous and asynchronous messaging environments.
 
 ### PreKeys
 
-This protocol uses a concept called 'PreKeys'. A PreKey is an ECPublicKey and
-an associated unique ID which are stored together by a server. PreKeys can also
-be signed.
+This protocol uses a concept called 'PreKeys'. A PreKey is an ECPublicKey and an associated unique ID which are stored together by a server. PreKeys can also be signed.
 
-At install time, clients generate a single signed PreKey, as well as a large
-list of unsigned PreKeys, and transmit all of them to the server.
+At install time, clients generate a single signed PreKey, as well as a large list of unsigned PreKeys, and transmit all of them to the server.
 
 ### Sessions
 
-Signal Protocol is session-oriented. Clients establish a "session," which is
-then used for all subsequent encrypt/decrypt operations. There is no need to
-ever tear down a session once one has been established.
+Signal Protocol is session-oriented. Clients establish a "session," which is then used for all subsequent encrypt/decrypt operations. There is no need to ever tear down a session once one has been established.
 
 Sessions are established in one of two ways:
 
-1. PreKeyBundles. A client that wishes to send a message to a recipient can
-   establish a session by retrieving a PreKeyBundle for that recipient from the
-   server.
-1. PreKeySignalMessages. A client can receive a PreKeySignalMessage from a
-   recipient and use it to establish a session.
+1. PreKeyBundles. A client that wishes to send a message to a recipient can establish a session by retrieving a PreKeyBundle for that recipient from the server.
+2. PreKeySignalMessages. A client can receive a PreKeySignalMessage from a recipient and use it to establish a session.
 
 ### State
 
-An established session encapsulates a lot of state between two clients. That
-state is maintained in durable records which need to be kept for the life of
-the session.
+An established session encapsulates a lot of state between two clients. That state is maintained in durable records which need to be kept for the life of the session.
 
 State is kept in the following places:
 
-- Identity State. Clients will need to maintain the state of their own identity
-  key pair, as well as identity keys received from other clients.
-- PreKey State. Clients will need to maintain the state of their generated
-  PreKeys.
-- Signed PreKey States. Clients will need to maintain the state of their signed
-  PreKeys.
-- Session State. Clients will need to maintain the state of the sessions they
-  have established.
+- Identity State. Clients will need to maintain the state of their own identity key pair, as well as identity keys received from other clients.
+- PreKey State. Clients will need to maintain the state of their generated PreKeys.
+- Signed PreKey States. Clients will need to maintain the state of their signed PreKeys.
+- Session State. Clients will need to maintain the state of the sessions they have established.
 
 ## Usage
 
-The code samples below come almost directly from our [sample web application](https://github.com/privacyresearchgroup/libsignal-typescript-demo). Please have a look there to see how everything fits together. Look at this project's unit tests too.
-
 ### Add the SDK to your project
 
-We use [yarn](https://yarnpkg.com).
+Install via npm:
 
 ```
-yarn add @privacyresearch/libsignal-protocol-typescript
+npm install @wppconnect/libsignal-protocol
 ```
 
-But npm is good too:
+Or via yarn:
 
 ```
-npm install @privacyresearch/libsignal-protocol-typescript
+yarn add @wppconnect/libsignal-protocol
 ```
 
-Now you can import classes and functions from the library. To make the examples below work, the following import suffices:
+Now you can import classes and functions from the package:
 
-```
-
+```ts
 import {
     KeyHelper,
     SignedPublicPreKeyType,
@@ -85,26 +69,23 @@ import {
     SessionBuilder,
     PreKeyType,
     SessionCipher,
-    MessageType }
-from '@privacyresearch/libsignal-protocol-typescript'
+    MessageType
+} from '@wppconnect/libsignal-protocol'
 ```
 
-If you prefer to use a prefix like `libsignal` and keep a short import, you can do the following:
+Or, if you prefer a grouped import:
 
-```
-import * as libsignal from '@privacyresearch/libsignal-protocol-typescript'
+```ts
+import * as libsignal from '@wppconnect/libsignal-protocol'
 ```
 
 #### Install time
 
-At install time, a signal client needs to generate its identity keys,
-registration id, and prekeys.
+At install time, a signal client needs to generate its identity keys, registration id, and prekeys.
 
-A signal client also needs to implement a storage interface that will manage
-loading and storing of identity, prekeys, signed prekeys, and session state.
-See [`src/__test__/storage-type.ts`]() for an example.
+A signal client also needs to implement a storage interface that will manage loading and storing of identity, prekeys, signed prekeys, and session state. See [`src/__test__/storage-type.ts`] for an example.
 
-Here is what setup might look like:
+Example setup:
 
 ```ts
 const createID = async (name: string, store: SignalProtocolStore) => {
@@ -122,8 +103,8 @@ const createID = async (name: string, store: SignalProtocolStore) => {
   const signedPreKey = await KeyHelper.generateSignedPreKey(identityKeyPair, signedPreKeyId)
   store.storeSignedPreKey(signedPreKeyId, signedPreKey.keyPair)
 
-  // Now we register this with the server or other directory so all users can see them.
-  // You might implement your directory differently, this is not part of the SDK.
+  // Now register this with the server or directory so all users can see them.
+  // Implement your directory as needed.
 
   const publicSignedPreKey: SignedPublicPreKeyType = {
     keyId: signedPreKeyId,
@@ -145,143 +126,18 @@ const createID = async (name: string, store: SignalProtocolStore) => {
 }
 ```
 
-Relevant type definitions and classes: [KeyHelper](), [KeyPairType](), [PreKeyPairType](), [SignedPreKeyPairType](),
-[PreKeyType](), [SignedPublicPreKeyType]().
-
 ### Building a session
 
-Once this is implemented, building a session is fairly straightforward:
+For complete usage examples, session building, encryption and decryption, see the [original README](https://github.com/privacyresearchgroup/libsignal-protocol-typescript#usage) and the Signal documentation: [X3DH](https://signal.org/docs/specifications/x3dh/) and [Double Ratchet](https://signal.org/docs/specifications/doubleratchet/).
 
-```ts
-const starterMessageBytes = Uint8Array.from([
-  0xce,
-  0x93,
-  0xce,
-  0xb5,
-  0xce,
-  0xb9,
-  0xce,
-  0xac,
-  0x20,
-  0xcf,
-  0x83,
-  0xce,
-  0xbf,
-  0xcf,
-  0x85,
-])
+## Elliptic Curve
 
-const startSessionWithBoris = async () => {
-  // get Boris' key bundle. This is a DeviceType<ArrayBuffer>
-  const borisBundle = directory.getPreKeyBundle('boris')
-
-  // borisAddress is a SignalProtocolAddress
-  const recipientAddress = borisAddress
-
-  // Instantiate a SessionBuilder for a remote recipientId + deviceId tuple.
-  const sessionBuilder = new SessionBuilder(adiStore, recipientAddress)
-
-  // Process a prekey fetched from the server. Returns a promise that resolves
-  // once a session is created and saved in the store, or rejects if the
-  // identityKey differs from a previously seen identity for this address.
-  await sessionBuilder.processPreKey(borisBundle!)
-
-  // Now we can encrypt a messageto get a MessageType object
-  const senderSessionCipher = new SessionCipher(adiStore, recipientAddress)
-  const ciphertext = await senderSessionCipher.encrypt(starterMessageBytes.buffer)
-
-  // The message is encrypted, now send it however you like.
-  sendMessage('boris', 'adalheid', ciphertext)
-}
-```
-
-Relevant type definitions: [DeviceType](), [SignalProtocolAddress](), [MessageType](), [SessionBuilder](), [SessionCipher]()
-
-_Note:_ As discussed below, the Signal protocol uses two message types: `PreKeyWhisperMessage` and `WhisperMessage` that are defined
-in [the protobuf definitions]() and implemented in [libsignal-protocol-protobuf-ts](https://github.com/privacyresearchgroup/libsignal-protocol-protobuf-ts). The message created in the sample above is a `PreKeyWhisperMessage`. It carries information needed for the recipient to build a session with the [X3DH Protocol](https://signal.org/docs/specifications/x3dh/). After a session is established for a recipient, `SessionCipher.encrypt()` will return a simpler `WhisperMessage`.
-
-> **\*Into the weeds:** The function `sessionCipher.encrypt()` always returns a [`MessageType`]() object. Sometimes it is a `PreKeyWhisperMessage` and sometimes it is a `WhisperMessage`. To distinguish, check `ciphertext.type`. If `ciphertext.type === 3` then `ciphertext.body` contains a serialized `PreKeyWhisperMessage`. If `ciphertext.type === 1` then `ciphertext.body` contains a serialized `WhisperMessage`.\*
-
-### Encrypting
-
-Once you have a session established with an address, you can encrypt messages
-using SessionCipher.
-
-```ts
-const plaintext = 'μῆνιν ἄειδε θεὰ Πηληϊάδεω Ἀχιλῆος / οὐλομένην, ἣ μυρί᾽ Ἀχαιοῖς ἄλγε᾽ ἔθηκε'
-const buffer = new TextEncoder().encode(plaintext).buffer
-
-const sessionCipher = new SessionCipher(store, address)
-const ciphertext = await sessionCipher.encrypt(buffer)
-// If we've already established a session, thenciphertext.type === 1.
-
-// Now we can send it over the channel of our choice
-sendMessage('adalheid', 'boris', ciphertext)
-```
-
-### Decrypting
-
-Ciphertexts come in two flavors: WhisperMessage and PreKeyWhisperMessage.
-
-```ts
-const address = new SignalProtocolAddress(recipientId, deviceId)
-const sessionCipher = new SessionCipher(store, address)
-
-// Decrypting a PreKeyWhisperMessage will establish a new session and
-// store it in the SignalProtocolStore. It returns a promise that resolves
-// when the message is decrypted or rejects if the identityKey differs from
-// a previously seen identity for this address.
-
-let plaintext: ArrayBuffer
-// ciphertext: MessageType
-if (ciphertext.type === 3) {
-  // It is a PreKeyWhisperMessage and will establish a session.
-  try {
-    plaintext = await sessionCipher.decryptPreKeyWhisperMessage(ciphertext.body!, 'binary')
-  } catch (e) {
-    // handle identity key conflict
-  }
-} else if (ciphertext.type === 1) {
-  // It is a WhisperMessage for an established session.
-  plaintext = await sessionCipher.decryptWhisperMessage(ciphertext.body!, 'binary')
-}
-
-// now you can do something with your plaintext, like
-const secretMessage = new TextDecoder().decode(new Uint8Array(plaintext))
-```
-
-## Injecting Dependencies
-
-This library uses [WebCrypto]() for symmetric key cryptography and random number generation. It uses an implemenation of the [AsyncCurve](https://github.com/privacyresearchgroup/curve25519-typescript/blob/master/src/types.ts#L21) interface in [`curve25519-typescript`](https://github.com/privacyresearchgroup/curve25519-typescript) for public key operations.
-
-Functional defaults are provided for each but you may want to provide your own, either for performance or security reasons.
-
-### WebCrypto defaults and injection
-
-By default this library will use `window.crypto` if it is present. Otherwise it uses [`msrcrypto`](https://www.npmjs.com/package/msrcrypto). If you are falling back to `msrcrypto` you will want to consider providing a substitute.
-
-To replace the WebCrypto component with your own, simply call `setWebCrypto` as follows:
-
-```ts
-setWebCrypto(myCryptImplementation)
-```
-
-Your WebCrypto imlementation does not need to support the entire interface, but does need to implement:
-
-- AES-CBC
-- HMAC SHA-256
-- `getRandomValues`
-
-### Elliptic curve crypto defaults and injection
-
-By default this library uses the curve X25519 implementation in [`curve25519-typescript`](https://github.com/privacyresearchgroup/curve25519-typescript). This is a javascript implementation, compiled into [asm.js](http://asmjs.org/) from C with [emscripten](https://emscripten.org/). You may want to provide a native implementation or even use a different curve, like X448. To do this, wrap your implementation into a an object that implements the [AsyncCurve](https://github.com/privacyresearchgroup/curve25519-typescript/blob/master/src/types.ts#L21) interface and set it as follows:
-
-```ts
-setCurve(myCurve)
-```
+This fork uses [`@wppconnect/curve25519`](https://www.npmjs.com/package/@wppconnect/curve25519) as the default implementation for elliptic curve operations (X25519/Ed25519).
 
 ## License
 
-Copyright 2020 by Privacy Research, LLC
+This project is licensed under GPLv3, as in the original project.
 
-Licensed under the GPLv3: http://www.gnu.org/licenses/gpl-3.0.html
+---
+
+Forked and adapted from [privacyresearchgroup/libsignal-protocol-typescript](https://github.com/privacyresearchgroup/libsignal-protocol-typescript).

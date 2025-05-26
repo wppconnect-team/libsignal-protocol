@@ -2,8 +2,17 @@ import * as protos from '../protos'
 import * as internal from '../internal'
 
 /**
- * Represents a SenderKeyMessage for group messaging, including serialization and signature.
- * Structure and methods inspired by the Java/libsignal standard.
+ * Represents a SenderKeyMessage for group messaging in the Signal protocol, including serialization and Ed25519 signature.
+ *
+ * Reference: https://signal.org/docs/specifications/group/#sender-keys
+ *
+ * @example
+ * ```ts
+ * const msg = await SenderKeyMessage.create(keyId, iteration, ciphertext, signingKeyPrivate)
+ * const isValid = await msg.verifySignature(signingKeyPublic)
+ * const serialized = msg.serialize()
+ * const parsed = SenderKeyMessage.fromSerialized(serialized)
+ * ```
  */
 export class SenderKeyMessage {
     public static readonly SIGNATURE_LENGTH: number = 64
@@ -35,6 +44,8 @@ export class SenderKeyMessage {
      * @param iteration The message iteration
      * @param ciphertext The encrypted message
      * @param signingKeyPrivate The sender's private signing key
+     * @param version Protocol version (default: 3)
+     * @returns Promise resolving to a SenderKeyMessage instance
      */
     static async create(
         keyId: number,
@@ -62,6 +73,7 @@ export class SenderKeyMessage {
     /**
      * Verifies the signature of the message.
      * @param signingKeyPublic The sender's public signing key
+     * @returns Promise resolving to true if valid, false otherwise
      */
     async verifySignature(signingKeyPublic: Uint8Array): Promise<boolean> {
         return await internal.crypto.Ed25519Verify(signingKeyPublic, this.serialized, this.signature)
@@ -83,6 +95,7 @@ export class SenderKeyMessage {
     /**
      * Creates an instance from serialized data (protobuf + signature concatenated).
      * @param serializedWithSig Uint8Array containing protobuf + signature
+     * @returns SenderKeyMessage instance
      */
     static fromSerialized(serializedWithSig: Uint8Array): SenderKeyMessage {
         const serializedEncoded = new Uint8Array(serializedWithSig)

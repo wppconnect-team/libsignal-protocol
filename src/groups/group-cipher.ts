@@ -7,8 +7,16 @@ import { SenderKeyState } from './state/sender-key-state'
 import { SenderMessageKey } from './ratchet/sender-message-key'
 
 /**
- * Main entry point for Signal Protocol group encrypt/decrypt operations.
- * Once a session is established, this class is used for all subsequent encrypt/decrypt operations.
+ * Handles group message encryption and decryption using the Sender Key protocol (Signal/libsignal).
+ *
+ * Reference: https://signal.org/docs/specifications/group/#sender-keys
+ *
+ * @example
+ * ```ts
+ * const cipher = new GroupCipher(store, senderKeyName)
+ * const encrypted = await cipher.encrypt(plaintext)
+ * const decrypted = await cipher.decrypt(ciphertext)
+ * ```
  */
 export class GroupCipher {
     private senderKeyStore: SenderKeyStore

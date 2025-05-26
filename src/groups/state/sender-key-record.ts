@@ -4,7 +4,16 @@ import { SenderKeyRecordStructure, SenderKeyStateStructure } from '../../protos/
 const MAX_STATES = 5
 
 /**
- * Represents a set of SenderKeyStates for a specific SenderKeyName.
+ * Stores and manages the state of sender keys for group messaging (Signal/libsignal).
+ *
+ * Reference: https://signal.org/docs/specifications/group/#sender-keys
+ *
+ * @example
+ * ```ts
+ * const record = new SenderKeyRecord()
+ * record.addState(...)
+ * const state = record.getSenderKeyState()
+ * ```
  */
 export class SenderKeyRecord {
     private senderKeyStates: SenderKeyState[] = []

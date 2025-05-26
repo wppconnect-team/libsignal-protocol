@@ -10,7 +10,14 @@ import {
 const MAX_MESSAGE_KEYS = 2000
 
 /**
- * Represents the state of an individual SenderKey ratchet for group messaging.
+ * Represents the state of a sender key for a group session (Signal/libsignal).
+ *
+ * Reference: https://signal.org/docs/specifications/group/#sender-keys
+ *
+ * @example
+ * ```ts
+ * const state = new SenderKeyState(...)
+ * ```
  */
 export class SenderKeyState {
     private keyId: number

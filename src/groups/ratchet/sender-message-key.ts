@@ -1,7 +1,14 @@
 import * as internal from '../../internal'
 
 /**
- * Represents the symmetric material (IV and Cipher Key) for encrypting group messages.
+ * Represents a message key in the Sender Key ratchet for group messaging (Signal/libsignal).
+ *
+ * Reference: https://signal.org/docs/specifications/group/#sender-keys
+ *
+ * @example
+ * ```ts
+ * const msgKey = new SenderMessageKey(...)
+ * ```
  */
 export class SenderMessageKey {
     private readonly iteration: number

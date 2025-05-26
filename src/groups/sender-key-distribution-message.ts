@@ -1,7 +1,16 @@
 import * as protos from '../protos'
 
 /**
- * Represents a SenderKeyDistributionMessage for group messaging, including serialization.
+ * Represents a SenderKeyDistributionMessage for distributing sender keys in group messaging (Signal/libsignal).
+ *
+ * Reference: https://signal.org/docs/specifications/group/#sender-keys
+ *
+ * @example
+ * ```ts
+ * const msg = new SenderKeyDistributionMessage(...)
+ * const serialized = msg.serialize()
+ * const parsed = SenderKeyDistributionMessage.fromSerialized(serialized)
+ * ```
  */
 export class SenderKeyDistributionMessage {
     public readonly id: number

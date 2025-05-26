@@ -14,14 +14,38 @@ export interface MessageType {
     body?: string
     registrationId?: number
 }
+
+/**
+ * Handles encryption and decryption of messages using established sessions, following the Signal/libsignal protocol.
+ *
+ * Reference:
+ * - Double Ratchet: https://signal.org/docs/specifications/doubleratchet/
+ *
+ * @example
+ * ```ts
+ * const cipher = new SessionCipher(storage, remoteAddress)
+ * const encrypted = await cipher.encrypt(plaintext)
+ * const decrypted = await cipher.decryptWhisperMessage(ciphertext)
+ * ```
+ */
 export class SessionCipher {
     storage: StorageType
     remoteAddress: SignalProtocolAddress
+    /**
+     * Creates a new SessionCipher for a given remote address and storage.
+     * @param storage Storage backend implementing StorageType
+     * @param remoteAddress Remote party's SignalProtocolAddress or string
+     */
     constructor(storage: StorageType, remoteAddress: SignalProtocolAddress | string) {
         this.storage = storage
         this.remoteAddress =
             typeof remoteAddress === 'string' ? SignalProtocolAddress.fromString(remoteAddress) : remoteAddress
     }
+    /**
+     * Loads a session record for a given encoded address.
+     * @param encodedNumber Encoded address string
+     * @returns Promise resolving to SessionRecord or undefined
+     */
     async getRecord(encodedNumber: string): Promise<SessionRecord | undefined> {
         const serialized = await this.storage.loadSession(encodedNumber)
         if (serialized === undefined) {
@@ -29,7 +53,12 @@ export class SessionCipher {
         }
         return SessionRecord.deserialize(serialized)
     }
-
+    /**
+     * Encrypts a message buffer for the current session.
+     * @param buffer Message as Uint8Array
+     * @returns Promise resolving to a MessageType (Signal or PreKey message)
+     * @throws Error if no session is available
+     */
     encrypt(buffer: Uint8Array): Promise<MessageType> {
         return SessionLock.queueJobForNumber(this.remoteAddress.toString(), () => this.encryptJob(buffer))
     }
@@ -206,6 +235,18 @@ export class SessionCipher {
         ratchet.rootKey = masterKey[0]
     }
 
+    /**
+     * Decrypts a PreKeyWhisperMessage (used for session setup).
+     * @param buff Message as string (binary) or Uint8Array
+     * @param encoding Encoding (default: 'binary')
+     * @returns Promise resolving to decrypted plaintext as Uint8Array
+     * @throws Error if version is incompatible or session cannot be established
+     *
+     * @example
+     * ```ts
+     * const plaintext = await cipher.decryptPreKeyWhisperMessage(preKeyMsg)
+     * ```
+     */
     async decryptPreKeyWhisperMessage(buff: string | Uint8Array, encoding?: string): Promise<Uint8Array> {
         encoding = encoding || 'binary'
         if (encoding !== 'binary') {
@@ -254,6 +295,14 @@ export class SessionCipher {
 
         return SessionLock.queueJobForNumber(address, job)
     }
+    /**
+     * Attempts to decrypt a message using a list of sessions (used for session recovery).
+     * @param buffer Message as Uint8Array
+     * @param sessionList List of SessionType
+     * @param errors Array to collect errors
+     * @returns Promise resolving to an object with plaintext and the session used
+     * @throws Error if decryption fails for all sessions
+     */
     async decryptWithSessionList(
         buffer: Uint8Array,
         sessionList: SessionType[],
@@ -285,6 +334,18 @@ export class SessionCipher {
         }
     }
 
+    /**
+     * Decrypts a WhisperMessage (normal message after session is established).
+     * @param buff Message as string (binary) or Uint8Array
+     * @param encoding Encoding (default: 'binary')
+     * @returns Promise resolving to decrypted plaintext as Uint8Array
+     * @throws Error if no session is available or decryption fails
+     *
+     * @example
+     * ```ts
+     * const plaintext = await cipher.decryptWhisperMessage(ciphertext)
+     * ```
+     */
     decryptWhisperMessage(buff: string | Uint8Array, encoding?: string): Promise<Uint8Array> {
         encoding = encoding || 'binary'
         if (encoding !== 'binary') {
@@ -418,6 +479,10 @@ export class SessionCipher {
 
     /////////////////////////////////////////
     // session management and storage access
+    /**
+     * Gets the remote registration ID from the open session, if available.
+     * @returns Promise resolving to the registration ID or undefined
+     */
     getRemoteRegistrationId(): Promise<number | undefined> {
         return SessionLock.queueJobForNumber(this.remoteAddress.toString(), async () => {
             const record = await this.getRecord(this.remoteAddress.toString())
@@ -432,6 +497,10 @@ export class SessionCipher {
         })
     }
 
+    /**
+     * Checks if there is an open session for the remote device.
+     * @returns Promise resolving to true if an open session exists, false otherwise
+     */
     hasOpenSession(): Promise<boolean> {
         const job = async () => {
             const record = await this.getRecord(this.remoteAddress.toString())
@@ -442,6 +511,10 @@ export class SessionCipher {
         }
         return SessionLock.queueJobForNumber(this.remoteAddress.toString(), job)
     }
+    /**
+     * Closes the open session for the remote device, if any.
+     * @returns Promise resolving when the session is closed
+     */
     closeOpenSessionForDevice(): Promise<void> {
         const address = this.remoteAddress.toString()
         const job = async () => {
@@ -456,6 +529,10 @@ export class SessionCipher {
 
         return SessionLock.queueJobForNumber(address, job)
     }
+    /**
+     * Deletes all sessions for the remote device (used for session reset).
+     * @returns Promise resolving when all sessions are deleted
+     */
     deleteAllSessionsForDevice(): Promise<void> {
         // Used in session reset scenarios, where we really need to delete
         const address = this.remoteAddress.toString()

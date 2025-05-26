@@ -7,15 +7,39 @@ import { PreKeySignalMessage } from './protos'
 import { SessionLock } from './session-lock'
 import { uint8ArrayToBase64 } from './helpers'
 
+/**
+ * Handles the creation and management of secure sessions using the X3DH and Double Ratchet protocols, as specified by Signal/libsignal.
+ *
+ * Reference:
+ * - X3DH: https://signal.org/docs/specifications/x3dh/
+ * - Double Ratchet: https://signal.org/docs/specifications/doubleratchet/
+ *
+ * @example
+ * ```ts
+ * const builder = new SessionBuilder(storage, remoteAddress)
+ * const session = await builder.processPreKeyJob(device)
+ * ```
+ */
 export class SessionBuilder {
     remoteAddress: SignalProtocolAddressType
     storage: StorageType
 
+    /**
+     * Creates a new SessionBuilder for a given remote address and storage.
+     * @param storage Storage backend implementing StorageType
+     * @param remoteAddress Remote party's SignalProtocolAddress
+     */
     constructor(storage: StorageType, remoteAddress: SignalProtocolAddressType) {
         this.remoteAddress = remoteAddress
         this.storage = storage
     }
 
+    /**
+     * Processes a pre-key job for a given device, establishing a new session if needed.
+     * @param device DeviceType containing identity and pre-keys
+     * @returns Promise resolving to the established SessionType
+     * @throws Error if identity is not trusted or keys are invalid
+     */
     processPreKeyJob = async (device: DeviceType): Promise<SessionType> => {
         const trusted = await this.storage.isTrustedIdentity(
             this.remoteAddress.name,
@@ -70,8 +94,18 @@ export class SessionBuilder {
         return session
     }
 
-    // Arguments map to the X3DH spec: https://signal.org/docs/specifications/x3dh/#keys
-    // We are Alice the initiator.
+    /**
+     * Starts a session as the initiator (Alice) according to the X3DH protocol.
+     * @param EKa Ephemeral key pair (ours)
+     * @param IKb Remote identity public key
+     * @param SPKb Remote signed pre-key public key
+     * @param OPKb Remote one-time pre-key public key (optional)
+     * @param registrationId Remote registration ID (optional)
+     * @returns Promise resolving to a new SessionType
+     * @throws Error if keys are missing
+     *
+     * @see https://signal.org/docs/specifications/x3dh/
+     */
     startSessionAsInitiator = async (
         EKa: KeyPairType<Uint8Array>,
         IKb: Uint8Array,
@@ -149,8 +183,16 @@ export class SessionBuilder {
         return session
     }
 
-    // Arguments map to the X3DH spec: https://signal.org/docs/specifications/x3dh/#keys
-    // We are Bob now.
+    /**
+     * Starts a session as the responder (Bob) from a PreKeySignalMessage, according to the X3DH protocol.
+     * @param OPKb Our one-time pre-key pair (optional)
+     * @param SPKb Our signed pre-key pair
+     * @param message PreKeySignalMessage from the initiator
+     * @returns Promise resolving to a new SessionType
+     * @throws Error if keys are missing
+     *
+     * @see https://signal.org/docs/specifications/x3dh/
+     */
     startSessionWthPreKeyMessage = async (
         OPKb: KeyPairType<Uint8Array> | undefined,
         SPKb: KeyPairType<Uint8Array>,
@@ -221,6 +263,14 @@ export class SessionBuilder {
         return session
     }
 
+    /**
+     * Calculates and sets the sending chain for the Double Ratchet, given a remote ephemeral key.
+     * @param session The session to update
+     * @param remoteKey The remote party's ephemeral public key
+     * @returns Promise resolving when the sending ratchet is updated
+     *
+     * @see https://signal.org/docs/specifications/doubleratchet/
+     */
     async calculateSendingRatchet(session: SessionType, remoteKey: Uint8Array): Promise<void> {
         const ratchet = session.currentRatchet
         if (!ratchet.ephemeralKeyPair) {
@@ -244,6 +294,16 @@ export class SessionBuilder {
         ratchet.rootKey = masterKey[0]
     }
 
+    /**
+     * Processes a pre-key for a device, ensuring session setup is atomic and thread-safe.
+     * @param device DeviceType containing identity and pre-keys
+     * @returns Promise resolving to the established SessionType
+     *
+     * @example
+     * ```ts
+     * const session = await builder.processPreKey(device)
+     * ```
+     */
     async processPreKey(device: DeviceType): Promise<SessionType> {
         const runJob = async () => {
             const sess = await this.processPreKeyJob(device)
@@ -252,6 +312,15 @@ export class SessionBuilder {
         return SessionLock.queueJobForNumber(this.remoteAddress.toString(), runJob)
     }
 
+    /**
+     * Processes a v3 PreKeySignalMessage, updating the session record as needed.
+     * @param record The current SessionRecord
+     * @param message The PreKeySignalMessage to process
+     * @returns Promise resolving to the preKeyId used, or void
+     * @throws Error if the identity is unknown or keys are missing
+     *
+     * @see https://signal.org/docs/specifications/x3dh/
+     */
     async processV3(record: SessionRecord, message: PreKeySignalMessage): Promise<number | void> {
         const trusted = this.storage.isTrustedIdentity(
             this.remoteAddress.name,

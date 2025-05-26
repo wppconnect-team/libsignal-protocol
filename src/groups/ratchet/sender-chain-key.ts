@@ -5,7 +5,14 @@ const MESSAGE_KEY_SEED = new Uint8Array([0x01])
 const CHAIN_KEY_SEED = new Uint8Array([0x02])
 
 /**
- * Represents a chain of keys for group messaging, each derived from the previous.
+ * Represents a chain key in the Sender Key ratchet for group messaging (Signal/libsignal).
+ *
+ * Reference: https://signal.org/docs/specifications/group/#sender-keys
+ *
+ * @example
+ * ```ts
+ * const chainKey = new SenderChainKey(...)
+ * ```
  */
 export class SenderChainKey {
     private readonly iteration: number

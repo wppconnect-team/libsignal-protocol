@@ -2,7 +2,15 @@ import { SenderKeyName } from '../sender-key-name'
 import { SenderKeyRecord } from './sender-key-record'
 
 /**
- * Interface for storing and loading SenderKeyRecords for group messaging.
+ * Interface for storing and retrieving sender keys for group messaging (Signal/libsignal).
+ *
+ * Reference: https://signal.org/docs/specifications/group/#sender-keys
+ *
+ * @example
+ * ```ts
+ * store.storeSenderKey(senderKeyName, record)
+ * const record = store.loadSenderKey(senderKeyName)
+ * ```
  */
 export interface SenderKeyStore {
     /**
