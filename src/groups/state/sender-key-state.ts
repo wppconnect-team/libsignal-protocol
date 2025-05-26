@@ -1,11 +1,6 @@
 import { SenderChainKey } from '../ratchet/sender-chain-key'
 import { SenderMessageKey } from '../ratchet/sender-message-key'
-import {
-    SenderKeyStateStructure,
-    SenderKeyStateStructure_SenderChainKey,
-    SenderKeyStateStructure_SenderSigningKey,
-    SenderKeyStateStructure_SenderMessageKey,
-} from '../../protos/LocalStorageProtocol'
+import { textsecure } from '../../protos'
 
 const MAX_MESSAGE_KEYS = 2000
 
@@ -51,10 +46,10 @@ export class SenderKeyState {
     /**
      * Creates a SenderKeyState from a protobuf structure.
      */
-    static fromProto(proto: SenderKeyStateStructure): SenderKeyState {
+    static fromProto(proto: textsecure.ISenderKeyStateStructure): SenderKeyState {
         const keyId = proto.senderKeyId ?? 0
-        const chainKeyStruct = proto.senderChainKey as SenderKeyStateStructure_SenderChainKey
-        const signingKeyStruct = proto.senderSigningKey as SenderKeyStateStructure_SenderSigningKey
+        const chainKeyStruct = proto.senderChainKey as textsecure.SenderKeyStateStructure.ISenderChainKey
+        const signingKeyStruct = proto.senderSigningKey as textsecure.SenderKeyStateStructure.ISenderSigningKey
         const iteration = chainKeyStruct?.iteration ?? 0
         const chainKey = chainKeyStruct?.seed || new Uint8Array(0)
         const signingKeyPublic = signingKeyStruct?.public || new Uint8Array(0)
@@ -82,20 +77,22 @@ export class SenderKeyState {
     /**
      * Serializes the SenderKeyState to a protobuf structure.
      */
-    toProto(): SenderKeyStateStructure {
+    toProto(): textsecure.ISenderKeyStateStructure {
         const chainKey = this.senderChainKey
-        const signingKeyStruct: SenderKeyStateStructure_SenderSigningKey = {
+        const signingKeyStruct: textsecure.SenderKeyStateStructure.ISenderSigningKey = {
             public: new Uint8Array(this.signingKeyPublic),
             private: this.signingKeyPrivate ? new Uint8Array(this.signingKeyPrivate) : undefined,
         }
-        const chainKeyStruct: SenderKeyStateStructure_SenderChainKey = {
+        const chainKeyStruct: textsecure.SenderKeyStateStructure.ISenderChainKey = {
             iteration: chainKey.getIteration(),
             seed: new Uint8Array(chainKey.getSeed()),
         }
-        const messageKeys: SenderKeyStateStructure_SenderMessageKey[] = this.senderMessageKeys.map((mk) => ({
-            iteration: mk.iteration,
-            seed: new Uint8Array(mk.seed),
-        }))
+        const messageKeys: textsecure.SenderKeyStateStructure.ISenderMessageKey[] = this.senderMessageKeys.map(
+            (mk) => ({
+                iteration: mk.iteration,
+                seed: new Uint8Array(mk.seed),
+            })
+        )
         return {
             senderKeyId: this.keyId,
             senderChainKey: chainKeyStruct,

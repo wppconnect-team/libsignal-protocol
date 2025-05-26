@@ -1,7 +1,7 @@
 import { SenderKeyStore } from './state/sender-key-store'
 import { SenderKeyName } from './sender-key-name'
 import { KeyHelper } from '../key-helper'
-import { SenderKeyDistributionMessage } from '../protos'
+import { textsecure } from '../protos'
 import { SessionLock } from '../session-lock'
 
 /**
@@ -32,7 +32,7 @@ export class GroupSessionBuilder {
      */
     async process(
         senderKeyName: SenderKeyName,
-        senderKeyDistributionMessage: SenderKeyDistributionMessage
+        senderKeyDistributionMessage: textsecure.ISenderKeyDistributionMessage
     ): Promise<void> {
         const runJob = async () => {
             // senderKeyDistributionMessage must have id, iteration, chainKey, signatureKey
@@ -53,7 +53,7 @@ export class GroupSessionBuilder {
      * @param senderKeyName The (groupId, senderId, deviceId) tuple
      * @returns An object representing the SenderKeyDistributionMessage
      */
-    async create(senderKeyName: SenderKeyName): Promise<SenderKeyDistributionMessage> {
+    async create(senderKeyName: SenderKeyName): Promise<textsecure.ISenderKeyDistributionMessage> {
         const runJob = async () => {
             // Returns an object representing SenderKeyDistributionMessage
             const senderKeyRecord = await this.senderKeyStore.loadSenderKey(senderKeyName)

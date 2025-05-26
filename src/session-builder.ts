@@ -3,7 +3,7 @@ import { DeviceType, SessionType, BaseKeyType, ChainType } from './session-types
 
 import * as internal from './internal'
 import { SessionRecord } from './session-record'
-import { PreKeySignalMessage } from './protos'
+import { textsecure } from './protos'
 import { SessionLock } from './session-lock'
 import { uint8ArrayToBase64 } from './helpers'
 
@@ -196,7 +196,7 @@ export class SessionBuilder {
     startSessionWthPreKeyMessage = async (
         OPKb: KeyPairType<Uint8Array> | undefined,
         SPKb: KeyPairType<Uint8Array>,
-        message: PreKeySignalMessage
+        message: textsecure.PreKeySignalMessage
     ): Promise<SessionType> => {
         const IKb = await this.storage.getIdentityKeyPair()
         const IKa = message.identityKey!
@@ -239,7 +239,7 @@ export class SessionBuilder {
         const masterKey = await internal.crypto.HKDF(sharedSecret, new Uint8Array(32), 'WhisperText')
 
         const session: SessionType = {
-            registrationId: message.registrationId,
+            registrationId: message.registrationId!,
             currentRatchet: {
                 rootKey: masterKey[0],
                 lastRemoteEphemeralKey: EKa,
@@ -321,7 +321,7 @@ export class SessionBuilder {
      *
      * @see https://signal.org/docs/specifications/x3dh/
      */
-    async processV3(record: SessionRecord, message: PreKeySignalMessage): Promise<number | void> {
+    async processV3(record: SessionRecord, message: textsecure.PreKeySignalMessage): Promise<number | void> {
         const trusted = this.storage.isTrustedIdentity(
             this.remoteAddress.name,
             message.identityKey!,
@@ -364,6 +364,6 @@ export class SessionBuilder {
         record.updateSessionState(new_session)
         await this.storage.saveIdentity(this.remoteAddress.toString(), message.identityKey!)
 
-        return message.preKeyId
+        return message.preKeyId!
     }
 }

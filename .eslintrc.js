@@ -6,6 +6,8 @@ module.exports = {
     sourceType: 'module', // Allows for the use of imports
   },
 
+  ignorePatterns: ['src/protos/**/*', 'src/__test-utils__/PushMessages.*'], // Ignora todos os arquivos na pasta src/protos
+
   extends: [
     'plugin:@typescript-eslint/recommended', // Uses the recommended rules from the @typescript-eslint/eslint-plugin
     'prettier', // Uses eslint-config-prettier to disable ESLint rules from @typescript-eslint/eslint-plugin that would conflict with prettier

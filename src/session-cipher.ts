@@ -1,7 +1,7 @@
 import { StorageType, Direction } from './types'
 import { Chain, ChainType, SessionType } from './session-types'
 import { SignalProtocolAddress } from './signal-protocol-address'
-import { PreKeySignalMessage, SignalMessage } from './protos'
+import { textsecure } from './protos/index'
 import * as util from './helpers'
 import * as internal from './internal'
 
@@ -68,7 +68,7 @@ export class SessionCipher {
         }
 
         const address = this.remoteAddress.toString()
-        const msg = SignalMessage.fromJSON({})
+        const msg = textsecure.SignalMessage.create()
         const [ourIdentityKey, myRegistrationId, record] = await this.loadKeysAndRecord(address)
         if (!record) {
             throw new Error('No record for ' + address)
@@ -94,7 +94,7 @@ export class SessionCipher {
 
         const ciphertext = await internal.crypto.encrypt(keys[0], buffer, keys[2].slice(0, 16))
         msg.ciphertext = new Uint8Array(ciphertext)
-        const encodedMsg = SignalMessage.encode(msg).finish()
+        const encodedMsg = textsecure.SignalMessage.encode(msg).finish()
 
         const macInput = new Uint8Array(encodedMsg.byteLength + 33 * 2 + 1)
         macInput.set(ourIdentityKey.pubKey)
@@ -123,7 +123,7 @@ export class SessionCipher {
         await this.storage.storeSession(address, record.serialize())
 
         if (session.pendingPreKey !== undefined) {
-            const preKeyMsg = PreKeySignalMessage.fromJSON({})
+            const preKeyMsg = textsecure.PreKeySignalMessage.fromObject({})
             preKeyMsg.identityKey = new Uint8Array(ourIdentityKey.pubKey)
 
             // TODO: for some test vectors there is no registration id. Why?
@@ -137,7 +137,7 @@ export class SessionCipher {
             preKeyMsg.signedPreKeyId = session.pendingPreKey.signedKeyId
 
             preKeyMsg.message = encodedMsgWithMAC
-            const encodedPreKeyMsg = PreKeySignalMessage.encode(preKeyMsg).finish()
+            const encodedPreKeyMsg = textsecure.PreKeySignalMessage.encode(preKeyMsg).finish()
             const result = String.fromCharCode((3 << 4) | 3) + util.uint8ArrayToBinaryString(encodedPreKeyMsg)
             return {
                 type: 3,
@@ -161,7 +161,7 @@ export class SessionCipher {
         ])
     }
 
-    private prepareChain = async (address: string, record: SessionRecord, msg: SignalMessage) => {
+    private prepareChain = async (address: string, record: SessionRecord, msg: textsecure.SignalMessage) => {
         const session = record.getOpenSession()
         if (!session) {
             throw new Error('No session to encrypt message for ' + address)
@@ -265,7 +265,7 @@ export class SessionCipher {
         const address = this.remoteAddress.toString()
         const job = async () => {
             let record = await this.getRecord(address)
-            const preKeyProto = PreKeySignalMessage.decode(messageData)
+            const preKeyProto = textsecure.PreKeySignalMessage.decode(messageData)
             if (!record) {
                 if (preKeyProto.registrationId === undefined) {
                     throw new Error('No registrationId')
@@ -393,7 +393,7 @@ export class SessionCipher {
         const messageProto = messageBytes.slice(1, messageBytes.byteLength - 8)
         const mac = messageBytes.slice(messageBytes.byteLength - 8, messageBytes.byteLength)
 
-        const message = SignalMessage.decode(new Uint8Array(messageProto))
+        const message = textsecure.SignalMessage.decode(new Uint8Array(messageProto))
 
         if (session === undefined) {
             return Promise.reject(

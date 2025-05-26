@@ -1,5 +1,5 @@
 import { SenderKeyState } from './sender-key-state'
-import { SenderKeyRecordStructure, SenderKeyStateStructure } from '../../protos/LocalStorageProtocol'
+import { textsecure } from '../../protos'
 
 const MAX_STATES = 5
 
@@ -22,7 +22,7 @@ export class SenderKeyRecord {
      * Creates a SenderKeyRecord from a serialized Uint8Array (protobuf).
      */
     static fromSerialized(buffer: Uint8Array): SenderKeyRecord {
-        const decoded = SenderKeyRecordStructure.decode(buffer)
+        const decoded = textsecure.SenderKeyRecordStructure.decode(buffer)
         const record = new SenderKeyRecord()
         for (const stateStruct of decoded.senderKeyStates) {
             record.senderKeyStates.push(SenderKeyState.fromProto(stateStruct))
@@ -34,9 +34,9 @@ export class SenderKeyRecord {
      * Serializes the SenderKeyRecord to a Uint8Array (protobuf).
      */
     serialize(): Uint8Array {
-        const protoStates: SenderKeyStateStructure[] = this.senderKeyStates.map((s) => s.toProto())
-        const proto = SenderKeyRecordStructure.create({ senderKeyStates: protoStates })
-        const encoded = SenderKeyRecordStructure.encode(proto).finish()
+        const protoStates: textsecure.ISenderKeyStateStructure[] = this.senderKeyStates.map((s) => s.toProto())
+        const proto = textsecure.SenderKeyRecordStructure.create({ senderKeyStates: protoStates })
+        const encoded = textsecure.SenderKeyRecordStructure.encode(proto).finish()
         return new Uint8Array(encoded.buffer, encoded.byteOffset, encoded.byteLength)
     }
 

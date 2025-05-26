@@ -1,4 +1,4 @@
-import * as protos from '../protos'
+import { textsecure } from '../protos'
 import * as internal from '../internal'
 
 /**
@@ -56,12 +56,12 @@ export class SenderKeyMessage {
     ): Promise<SenderKeyMessage> {
         const versionByte = (((version << 4) | version) & 0xff) % 256
 
-        const message = protos.SenderKeyMessage.create({
+        const message = textsecure.SenderKeyMessage.create({
             id: keyId,
             iteration,
             ciphertext: new Uint8Array(ciphertext),
         })
-        const encoded = protos.SenderKeyMessage.encode(message).finish()
+        const encoded = textsecure.SenderKeyMessage.encode(message).finish()
 
         const serialized = new Uint8Array([versionByte, ...encoded])
 
@@ -109,7 +109,7 @@ export class SenderKeyMessage {
 
         const serialized = new Uint8Array([versionByte, ...message])
 
-        const decoded = protos.SenderKeyMessage.decode(new Uint8Array(message))
+        const decoded = textsecure.SenderKeyMessage.decode(new Uint8Array(message))
         const keyId = decoded.id ?? 0
         const iteration = decoded.iteration ?? 0
         const ciphertext = decoded.ciphertext ? decoded.ciphertext : new Uint8Array(0)

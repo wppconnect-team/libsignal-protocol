@@ -1,4 +1,4 @@
-import * as protos from '../protos'
+import { textsecure } from '../protos'
 
 /**
  * Represents a SenderKeyDistributionMessage for distributing sender keys in group messaging (Signal/libsignal).
@@ -34,7 +34,7 @@ export class SenderKeyDistributionMessage {
         this.signingKey = signingKey
         this.version = version
         // Serialize the main fields (adjust according to the real .proto)
-        const message = protos.SenderKeyDistributionMessage.create({
+        const message = textsecure.SenderKeyDistributionMessage.create({
             id,
             chainKey,
             iteration,
@@ -42,7 +42,7 @@ export class SenderKeyDistributionMessage {
         })
 
         const versionByte = (((this.version << 4) | this.version) & 0xff) % 256
-        const messsage = protos.SenderKeyDistributionMessage.encode(message).finish()
+        const messsage = textsecure.SenderKeyDistributionMessage.encode(message).finish()
 
         this.serialized = Buffer.concat([new Uint8Array([versionByte]), messsage])
     }
@@ -62,7 +62,7 @@ export class SenderKeyDistributionMessage {
         const version = (versionByte & 0xff) >> 4
         const message = serialized.slice(1)
 
-        const decoded = protos.SenderKeyDistributionMessage.decode(message)
+        const decoded = textsecure.SenderKeyDistributionMessage.decode(message)
         const id = decoded.id ?? 0
         const iteration = decoded.iteration ?? 0
         const chainKey = decoded.chainKey ?? new Uint8Array()

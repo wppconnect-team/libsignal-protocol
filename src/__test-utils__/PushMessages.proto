@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package textsecure;
+package textsecure_test;
 
 option java_package         = "org.whispersystems.textsecure.push";
 option java_outer_classname = "PushMessageProtos";
