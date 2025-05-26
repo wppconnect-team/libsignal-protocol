@@ -1,6 +1,6 @@
 import { SenderKeyStore } from './state/sender-key-store'
 import { SenderKeyName } from './sender-key-name'
-import { crypto } from '../internal/crypto'
+import * as internal from '../internal'
 import { SenderKeyMessage } from './sender-key-message'
 import { SessionLock } from '../session-lock'
 import { SenderKeyState } from './state/sender-key-state'
@@ -38,7 +38,11 @@ export class GroupCipher {
             const senderKey = await this.getSenderKey(senderKeyState, iteration === 0 ? 0 : iteration + 1)
 
             // Encrypt the plaintext
-            const ciphertext = await crypto.encrypt(senderKey.getCipherKey(), paddedPlaintext, senderKey.getIv())
+            const ciphertext = await internal.crypto.encrypt(
+                senderKey.getCipherKey(),
+                paddedPlaintext,
+                senderKey.getIv()
+            )
             const signingKeyPrivate = senderKeyState.getSigningKeyPrivate()
 
             if (!signingKeyPrivate) throw new Error('Missing signing key')
@@ -79,7 +83,7 @@ export class GroupCipher {
 
             // Decrypt
             // const senderKey = await senderKeyState.getSenderChainKey().getSenderMessageKey()
-            const plaintext = await crypto.decrypt(senderKey.getCipherKey(), msg.ciphertext, senderKey.getIv())
+            const plaintext = await internal.crypto.decrypt(senderKey.getCipherKey(), msg.ciphertext, senderKey.getIv())
             await this.senderKeyStore.storeSenderKey(this.senderKeyId, record)
             return plaintext
         }

@@ -45,6 +45,7 @@ export enum Direction {
     SENDING = 1,
     RECEIVING = 2,
 }
+
 export interface StorageType {
     getIdentityKeyPair: () => Promise<KeyPairType | undefined>
     getLocalRegistrationId: () => Promise<number | undefined>
@@ -66,18 +67,8 @@ export interface StorageType {
 }
 
 export interface CurveType {
-    generateKeyPair: () => Promise<KeyPairType>
-    createKeyPair: (privKey: Uint8Array) => Promise<KeyPairType>
-    calculateAgreement: (pubKey: Uint8Array, privKey: Uint8Array) => Promise<Uint8Array>
-    verifySignature: (pubKey: Uint8Array, msg: Uint8Array, sig: Uint8Array) => Promise<void>
+    createKeyPair: (privKey: Uint8Array) => KeyPairType | Promise<KeyPairType>
+    calculateAgreement: (pubKey: Uint8Array, privKey: Uint8Array) => Uint8Array | Promise<Uint8Array>
+    verifySignature: (pubKey: Uint8Array, msg: Uint8Array, sig: Uint8Array) => boolean | Promise<boolean>
     calculateSignature: (privKey: Uint8Array, message: Uint8Array) => Uint8Array | Promise<Uint8Array>
-    validatePubKeyFormat: (buffer: Uint8Array) => Uint8Array
-}
-
-export interface AsyncCurveType {
-    generateKeyPair: () => Promise<KeyPairType>
-    createKeyPair: (privKey: Uint8Array) => Promise<KeyPairType>
-    calculateAgreement: (pubKey: Uint8Array, privKey: Uint8Array) => Promise<Uint8Array>
-    verifySignature: (pubKey: Uint8Array, msg: Uint8Array, sig: Uint8Array) => Promise<boolean>
-    calculateSignature: (privKey: Uint8Array, message: Uint8Array) => Promise<Uint8Array>
 }

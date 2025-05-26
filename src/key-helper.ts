@@ -1,13 +1,13 @@
-import * as Internal from './internal'
+import * as internal from './internal'
 import { KeyPairType, SignedPreKeyPairType, PreKeyPairType } from './types'
 
 export class KeyHelper {
     static generateIdentityKeyPair(): Promise<KeyPairType> {
-        return Internal.crypto.createKeyPair()
+        return internal.crypto.createKeyPair()
     }
 
     static generateRegistrationId(): number {
-        const registrationId = new Uint16Array(Internal.crypto.getRandomBytes(2))[0]
+        const registrationId = new Uint16Array(internal.crypto.getRandomBytes(2))[0]
         return registrationId & 0x3fff
     }
 
@@ -26,8 +26,8 @@ export class KeyHelper {
         if (!isNonNegativeInteger(signedKeyId)) {
             throw new TypeError('Invalid argument for signedKeyId: ' + signedKeyId)
         }
-        const keyPair = await Internal.crypto.createKeyPair()
-        const sig = await Internal.crypto.Ed25519Sign(identityKeyPair.privKey, keyPair.pubKey)
+        const keyPair = await internal.crypto.createKeyPair()
+        const sig = await internal.crypto.Ed25519Sign(identityKeyPair.privKey, keyPair.pubKey)
         return {
             keyId: signedKeyId,
             keyPair: keyPair,
@@ -36,7 +36,7 @@ export class KeyHelper {
     }
 
     static async generateSenderKey(): Promise<Uint8Array> {
-        return Internal.crypto.getRandomBytes(32)
+        return internal.crypto.getRandomBytes(32)
     }
 
     static async generatePreKey(keyId: number): Promise<PreKeyPairType> {
@@ -44,7 +44,7 @@ export class KeyHelper {
             throw new TypeError('Invalid argument for keyId: ' + keyId)
         }
 
-        const keyPair = await Internal.crypto.createKeyPair()
+        const keyPair = await internal.crypto.createKeyPair()
         return { keyId: keyId, keyPair: keyPair }
     }
 }

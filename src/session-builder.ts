@@ -1,7 +1,7 @@
 import { SignalProtocolAddressType, StorageType, Direction, KeyPairType } from './types'
 import { DeviceType, SessionType, BaseKeyType, ChainType } from './session-types'
 
-import * as Internal from './internal'
+import * as internal from './internal'
 import { SessionRecord } from './session-record'
 import { PreKeySignalMessage } from './protos'
 import { SessionLock } from './session-lock'
@@ -27,13 +27,13 @@ export class SessionBuilder {
         }
 
         // This will throw if invalid
-        await Internal.crypto.Ed25519Verify(
+        await internal.crypto.Ed25519Verify(
             device.identityKey,
             device.signedPreKey.publicKey,
             device.signedPreKey.signature
         )
 
-        const ephemeralKey = await Internal.crypto.createKeyPair()
+        const ephemeralKey = await internal.crypto.createKeyPair()
 
         const deviceOneTimePreKey = device.preKey?.publicKey
 
@@ -105,9 +105,9 @@ export class SessionBuilder {
         // X3DH Section 3.3. https://signal.org/docs/specifications/x3dh/
         // We'll handle the possible one-time prekey below
         const ecRes = await Promise.all([
-            Internal.crypto.ECDHE(SPKb, IKa.privKey),
-            Internal.crypto.ECDHE(IKb, EKa.privKey),
-            Internal.crypto.ECDHE(SPKb, EKa.privKey),
+            internal.crypto.ECDHE(SPKb, IKa.privKey),
+            internal.crypto.ECDHE(IKb, EKa.privKey),
+            internal.crypto.ECDHE(SPKb, EKa.privKey),
         ])
 
         sharedSecret.set(ecRes[0], 32)
@@ -115,11 +115,11 @@ export class SessionBuilder {
         sharedSecret.set(ecRes[2], 32 * 3)
 
         if (OPKb !== undefined) {
-            const ecRes4 = await Internal.crypto.ECDHE(OPKb, EKa.privKey)
+            const ecRes4 = await internal.crypto.ECDHE(OPKb, EKa.privKey)
             sharedSecret.set(ecRes4, 32 * 4)
         }
 
-        const masterKey = await Internal.HKDF(sharedSecret, new Uint8Array(32), 'WhisperText')
+        const masterKey = await internal.crypto.HKDF(sharedSecret, new Uint8Array(32), 'WhisperText')
 
         const session: SessionType = {
             registrationId: registrationId,
@@ -141,7 +141,7 @@ export class SessionBuilder {
 
         session.indexInfo.baseKey = EKa.pubKey
         session.indexInfo.baseKeyType = BaseKeyType.OURS
-        const ourSendingEphemeralKey = await Internal.crypto.createKeyPair()
+        const ourSendingEphemeralKey = await internal.crypto.createKeyPair()
         session.currentRatchet.ephemeralKeyPair = ourSendingEphemeralKey
 
         await this.calculateSendingRatchet(session, SPKb)
@@ -180,9 +180,9 @@ export class SessionBuilder {
         // X3DH Section 3.3. https://signal.org/docs/specifications/x3dh/
         // We'll handle the possible one-time prekey below
         const ecRes = await Promise.all([
-            Internal.crypto.ECDHE(IKa, SPKb.privKey),
-            Internal.crypto.ECDHE(EKa, IKb.privKey),
-            Internal.crypto.ECDHE(EKa, SPKb.privKey),
+            internal.crypto.ECDHE(IKa, SPKb.privKey),
+            internal.crypto.ECDHE(EKa, IKb.privKey),
+            internal.crypto.ECDHE(EKa, SPKb.privKey),
         ])
 
         sharedSecret.set(ecRes[0], 32)
@@ -190,11 +190,11 @@ export class SessionBuilder {
         sharedSecret.set(ecRes[2], 32 * 3)
 
         if (OPKb) {
-            const ecRes4 = await Internal.crypto.ECDHE(EKa, OPKb.privKey)
+            const ecRes4 = await internal.crypto.ECDHE(EKa, OPKb.privKey)
             sharedSecret.set(ecRes4, 32 * 4)
         }
 
-        const masterKey = await Internal.HKDF(sharedSecret, new Uint8Array(32), 'WhisperText')
+        const masterKey = await internal.crypto.HKDF(sharedSecret, new Uint8Array(32), 'WhisperText')
 
         const session: SessionType = {
             registrationId: message.registrationId,
@@ -233,8 +233,8 @@ export class SessionBuilder {
         if (!(ephPrivKey && ephPubKey && rootKey)) {
             throw new Error(`Missing key, cannot calculate sending ratchet`)
         }
-        const sharedSecret = await Internal.crypto.ECDHE(remoteKey, ephPrivKey)
-        const masterKey = await Internal.HKDF(sharedSecret, rootKey, 'WhisperRatchet')
+        const sharedSecret = await internal.crypto.ECDHE(remoteKey, ephPrivKey)
+        const masterKey = await internal.crypto.HKDF(sharedSecret, rootKey, 'WhisperRatchet')
 
         session.chains[ephPubKey] = {
             messageKeys: {},
@@ -245,7 +245,6 @@ export class SessionBuilder {
     }
 
     async processPreKey(device: DeviceType): Promise<SessionType> {
-        // return this.processPreKeyJob(device)
         const runJob = async () => {
             const sess = await this.processPreKeyJob(device)
             return sess

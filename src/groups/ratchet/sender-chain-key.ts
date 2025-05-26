@@ -1,5 +1,5 @@
 import { SenderMessageKey } from './sender-message-key'
-import { crypto } from '../../internal/crypto'
+import * as internal from '../../internal'
 
 const MESSAGE_KEY_SEED = new Uint8Array([0x01])
 const CHAIN_KEY_SEED = new Uint8Array([0x02])
@@ -31,7 +31,7 @@ export class SenderChainKey {
      * Derives the SenderMessageKey for this iteration.
      */
     async getSenderMessageKey(): Promise<SenderMessageKey> {
-        const seed = await crypto.sign(this.chainKey, MESSAGE_KEY_SEED)
+        const seed = await internal.crypto.sign(this.chainKey, MESSAGE_KEY_SEED)
         return SenderMessageKey.create(this.iteration, seed)
     }
 
@@ -39,7 +39,7 @@ export class SenderChainKey {
      * Returns the next SenderChainKey in the chain.
      */
     async getNext(): Promise<SenderChainKey> {
-        const nextKey = await crypto.sign(this.chainKey, CHAIN_KEY_SEED)
+        const nextKey = await internal.crypto.sign(this.chainKey, CHAIN_KEY_SEED)
         return new SenderChainKey(this.iteration + 1, nextKey)
     }
 

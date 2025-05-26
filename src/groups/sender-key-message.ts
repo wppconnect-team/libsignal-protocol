@@ -1,5 +1,5 @@
 import * as protos from '../protos'
-import { crypto } from '../internal/crypto'
+import * as internal from '../internal'
 
 /**
  * Represents a SenderKeyMessage for group messaging, including serialization and signature.
@@ -54,7 +54,7 @@ export class SenderKeyMessage {
 
         const serialized = new Uint8Array([versionByte, ...encoded])
 
-        const signature = await crypto.Ed25519Sign(signingKeyPrivate, serialized)
+        const signature = await internal.crypto.Ed25519Sign(signingKeyPrivate, serialized)
 
         return new SenderKeyMessage(keyId, iteration, ciphertext, serialized, signature, version)
     }
@@ -64,7 +64,7 @@ export class SenderKeyMessage {
      * @param signingKeyPublic The sender's public signing key
      */
     async verifySignature(signingKeyPublic: Uint8Array): Promise<boolean> {
-        return await crypto.Ed25519Verify(signingKeyPublic, this.serialized, this.signature)
+        return await internal.crypto.Ed25519Verify(signingKeyPublic, this.serialized, this.signature)
     }
 
     /**

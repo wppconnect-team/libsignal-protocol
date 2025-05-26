@@ -1,4 +1,4 @@
-import { HKDF } from '../../internal/crypto'
+import * as internal from '../../internal'
 
 /**
  * Represents the symmetric material (IV and Cipher Key) for encrypting group messages.
@@ -34,7 +34,7 @@ export class SenderMessageKey {
         // salt can be zero or fixed, depending on usage
         // Here, for simplicity, salt = 32 bytes zero
         const salt = new Uint8Array(32)
-        const [ivFull, cipherKeyFull] = await HKDF(seed, salt, 'WhisperGroup')
+        const [ivFull, cipherKeyFull] = await internal.crypto.HKDF(seed, salt, 'WhisperGroup')
         const iv = ivFull.slice(0, 16)
 
         const cipherKey = new Uint8Array(32)

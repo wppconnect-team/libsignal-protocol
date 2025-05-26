@@ -6,16 +6,19 @@ export function binaryStringToUint8Array(str: string): Uint8Array {
 }
 
 export function isEqual(a: Uint8Array | undefined, b: Uint8Array | undefined): boolean {
-    if (a === undefined || b === undefined) {
+    if (!a || !b) {
         return false
     }
-    const a1: string = uint8ArrayToBinaryString(a)
-    const b1: string = uint8ArrayToBinaryString(b)
-    const maxLength = Math.max(a1.length, b1.length)
-    if (maxLength < 5) {
+    const minLength = Math.min(a.length, b.length)
+    if (minLength === 0) {
         throw new Error('a/b compare too short')
     }
-    return a1.substring(0, Math.min(maxLength, a1.length)) == b1.substring(0, Math.min(maxLength, b1.length))
+    for (let i = 0; i < minLength; i++) {
+        if (a[i] !== b[i]) {
+            return false
+        }
+    }
+    return true
 }
 
 export function uint8ArrayToArrayBuffer(arr: Uint8Array): ArrayBuffer {
