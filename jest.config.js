@@ -9,7 +9,6 @@ module.exports = {
   },
   testRegex: '(src/__tests__/.*|(\\.|/)(test))\\.[jt]sx?$',
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
-  testEnvironment: './src/__test-utils__/custom-jest-environment.js',
   moduleNameMapper: {
     '^@bufbuild/protobuf/wire$': '<rootDir>/node_modules/@bufbuild/protobuf/dist/cjs/wire',
   },

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /*
  * jobQueue manages multiple queues indexed by device to serialize
  * session io ops on the database.

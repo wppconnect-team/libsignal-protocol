@@ -1,4 +1,5 @@
-module.exports = {
+/** @type {import('prettier').Config} */
+export default {
   tabWidth: 4,
   printWidth: 120,
   proseWrap: 'preserve',

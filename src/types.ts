@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
-
 /**
  * Defines core types and interfaces for the Signal/libsignal protocol, including addresses, key pairs, storage, and cryptographic operations.
  *

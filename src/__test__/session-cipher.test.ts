@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { SessionCipher, MessageType } from '../session-cipher'
 import { SessionBuilder } from '../session-builder'
 import { generateIdentity, generatePreKeyBundle, assertEqualUint8Arrays } from '../__test-utils__/utils'

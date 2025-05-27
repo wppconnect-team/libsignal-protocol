@@ -101,7 +101,6 @@ describe('SignalProtocolStore', function () {
                 }
             })
             test('returns undefined for prekeys that do not exist', async () => {
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const address = new SignalProtocolAddress(number, 2)
                 const key = await store.loadPreKey('2')
                 expect(key).toBeUndefined()

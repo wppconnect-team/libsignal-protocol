@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { hexToUint8Array } from '../__test-utils__/utils'
 
 type aKeyType = {

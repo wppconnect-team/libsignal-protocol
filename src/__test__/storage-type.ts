@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { SignalProtocolAddress } from '../signal-protocol-address'
 import { StorageType, Direction, SessionRecordType, PreKeyPairType, SignedPreKeyPairType } from '../types'
 import * as util from '../helpers'

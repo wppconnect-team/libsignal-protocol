@@ -38,7 +38,6 @@ export async function generatePreKeyBundle(
 
         return Promise.all([
             KeyHelper.generatePreKey(preKeyId),
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             KeyHelper.generateSignedPreKey(identity!, signedPreKeyId),
         ]).then(function (keys) {
             const preKey = keys[0]
@@ -48,7 +47,6 @@ export async function generatePreKeyBundle(
             store.storeSignedPreKey(signedPreKeyId, signedPreKey.keyPair)
 
             return {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 identityKey: identity!.pubKey,
                 registrationId: registrationId,
                 preKey: {

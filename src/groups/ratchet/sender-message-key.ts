@@ -27,7 +27,6 @@ export class SenderMessageKey extends Message<SenderMessageKey> {
         if (!this._iv) {
             this.deriveHKDF()
         }
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         return this._iv!
     }
 
@@ -35,7 +34,6 @@ export class SenderMessageKey extends Message<SenderMessageKey> {
         if (!this._cipherKey) {
             this.deriveHKDF()
         }
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         return this._cipherKey!
     }
 

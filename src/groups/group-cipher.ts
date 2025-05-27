@@ -99,7 +99,6 @@ export class GroupCipher {
         let senderChainKey = senderKeyState.senderChainKey
         if (senderChainKey.iteration > iteration) {
             if (senderKeyState.hasSenderMessageKey(iteration)) {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 return senderKeyState.removeSenderMessageKey(iteration)!
             }
             throw new Error(`Received message with old counter: ${senderChainKey.iteration}, ${iteration}`)

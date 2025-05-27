@@ -127,7 +127,6 @@ export class SessionCipher {
             preKeyMsg.identityKey = new Uint8Array(ourIdentityKey.pubKey)
 
             // TODO: for some test vectors there is no registration id. Why?
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             preKeyMsg.registrationId = myRegistrationId!
 
             preKeyMsg.baseKey = new Uint8Array(session.pendingPreKey.baseKey)
@@ -306,7 +305,6 @@ export class SessionCipher {
     async decryptWithSessionList(
         buffer: Uint8Array,
         sessionList: SessionType[],
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         errors: any[]
     ): Promise<{ plaintext: Uint8Array; session: SessionType }> {
         // Iterate recursively through the list, attempting to decrypt
@@ -358,7 +356,6 @@ export class SessionCipher {
             if (!record) {
                 throw new Error('No record for device ' + address)
             }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const errors: any[] = []
             const result = await this.decryptWithSessionList(buffer, record.getSessions(), errors)
             if (result.session.indexInfo.baseKey !== record.getOpenSession()?.indexInfo.baseKey) {

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { SessionBuilder } from '../session-builder'
 import { SessionCipher } from '../session-cipher'
 import { SessionRecord } from '../session-record'
