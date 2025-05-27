@@ -1,5 +1,7 @@
+import { Field, Message, Type } from 'protobufjs/light'
+import { SenderChainKey } from '../ratchet/sender-chain-key'
+import { SenderSigningKey } from '../ratchet/sender-signing-key'
 import { SenderKeyState } from './sender-key-state'
-import { textsecure } from '../../protos'
 
 const MAX_STATES = 5
 
@@ -15,30 +17,10 @@ const MAX_STATES = 5
  * const state = record.getSenderKeyState()
  * ```
  */
-export class SenderKeyRecord {
-    private senderKeyStates: SenderKeyState[] = []
-
-    /**
-     * Creates a SenderKeyRecord from a serialized Uint8Array (protobuf).
-     */
-    static fromSerialized(buffer: Uint8Array): SenderKeyRecord {
-        const decoded = textsecure.SenderKeyRecordStructure.decode(buffer)
-        const record = new SenderKeyRecord()
-        for (const stateStruct of decoded.senderKeyStates) {
-            record.senderKeyStates.push(SenderKeyState.fromProto(stateStruct))
-        }
-        return record
-    }
-
-    /**
-     * Serializes the SenderKeyRecord to a Uint8Array (protobuf).
-     */
-    serialize(): Uint8Array {
-        const protoStates: textsecure.ISenderKeyStateStructure[] = this.senderKeyStates.map((s) => s.toProto())
-        const proto = textsecure.SenderKeyRecordStructure.create({ senderKeyStates: protoStates })
-        const encoded = textsecure.SenderKeyRecordStructure.encode(proto).finish()
-        return new Uint8Array(encoded.buffer, encoded.byteOffset, encoded.byteLength)
-    }
+@Type.d('SenderKeyRecordStructure')
+export class SenderKeyRecord extends Message<SenderKeyRecord> {
+    @Field.d(1, SenderKeyState, 'repeated', [])
+    public senderKeyStates: SenderKeyState[] = []
 
     /**
      * Returns true if there are no states in the record.
@@ -64,7 +46,7 @@ export class SenderKeyRecord {
      */
     getSenderKeyStateById(keyId: number): SenderKeyState {
         for (const state of this.senderKeyStates) {
-            if (state.getKeyId() === keyId) return state
+            if (state.keyId === keyId) return state
         }
         throw new Error('No keys for: ' + keyId)
     }
@@ -73,7 +55,18 @@ export class SenderKeyRecord {
      * Adds a new SenderKeyState to the record.
      */
     addSenderKeyState(id: number, iteration: number, chainKey: Uint8Array, signatureKey: Uint8Array): void {
-        this.senderKeyStates.unshift(new SenderKeyState(id, iteration, chainKey, signatureKey))
+        this.senderKeyStates.unshift(
+            new SenderKeyState({
+                keyId: id,
+                senderChainKey: new SenderChainKey({
+                    iteration,
+                    chainKey,
+                }),
+                signingKey: new SenderSigningKey({
+                    public: signatureKey,
+                }),
+            })
+        )
         if (this.senderKeyStates.length > MAX_STATES) {
             this.senderKeyStates.pop()
         }
@@ -82,12 +75,16 @@ export class SenderKeyRecord {
     /**
      * Sets the SenderKeyState, replacing all previous states.
      */
-    setSenderKeyState(
-        id: number,
-        iteration: number,
-        chainKey: Uint8Array,
-        signatureKey: { pubKey: Uint8Array; privKey: Uint8Array }
-    ): void {
-        this.senderKeyStates = [new SenderKeyState(id, iteration, chainKey, signatureKey)]
+    setSenderKeyState(id: number, iteration: number, chainKey: Uint8Array, signatureKey: SenderSigningKey): void {
+        this.senderKeyStates = [
+            new SenderKeyState({
+                keyId: id,
+                senderChainKey: new SenderChainKey({
+                    iteration,
+                    chainKey,
+                }),
+                signingKey: signatureKey,
+            }),
+        ]
     }
 }

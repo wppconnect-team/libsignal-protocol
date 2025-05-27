@@ -1,5 +1,6 @@
-import { SenderMessageKey } from './sender-message-key'
+import { Field, Message, Type } from 'protobufjs/light'
 import * as internal from '../../internal'
+import { SenderMessageKey } from './sender-message-key'
 
 const MESSAGE_KEY_SEED = new Uint8Array([0x01])
 const CHAIN_KEY_SEED = new Uint8Array([0x02])
@@ -14,46 +15,33 @@ const CHAIN_KEY_SEED = new Uint8Array([0x02])
  * const chainKey = new SenderChainKey(...)
  * ```
  */
-export class SenderChainKey {
-    private readonly iteration: number
-    private readonly chainKey: Uint8Array
+@Type.d('SenderKeyStateStructure_SenderChainKey')
+export class SenderChainKey extends Message<SenderChainKey> {
+    @Field.d(1, 'uint32', 'optional')
+    public iteration!: number
 
-    /**
-     * @param iteration The current iteration of the chain
-     * @param chainKey The current chain key value
-     */
-    constructor(iteration: number, chainKey: Uint8Array) {
-        this.iteration = iteration
-        this.chainKey = chainKey
-    }
-
-    /**
-     * Returns the current iteration.
-     */
-    getIteration(): number {
-        return this.iteration
-    }
+    @Field.d(2, 'bytes', 'optional')
+    public chainKey!: Uint8Array
 
     /**
      * Derives the SenderMessageKey for this iteration.
      */
-    async getSenderMessageKey(): Promise<SenderMessageKey> {
-        const seed = await internal.crypto.sign(this.chainKey, MESSAGE_KEY_SEED)
-        return SenderMessageKey.create(this.iteration, seed)
+    getSenderMessageKey(): SenderMessageKey {
+        const seed = internal.crypto.sign(this.chainKey, MESSAGE_KEY_SEED)
+        return new SenderMessageKey({
+            iteration: this.iteration,
+            seed,
+        })
     }
 
     /**
      * Returns the next SenderChainKey in the chain.
      */
-    async getNext(): Promise<SenderChainKey> {
-        const nextKey = await internal.crypto.sign(this.chainKey, CHAIN_KEY_SEED)
-        return new SenderChainKey(this.iteration + 1, nextKey)
-    }
-
-    /**
-     * Returns the raw chain key seed.
-     */
-    getSeed(): Uint8Array {
-        return this.chainKey
+    getNext(): SenderChainKey {
+        const nextKey = internal.crypto.sign(this.chainKey, CHAIN_KEY_SEED)
+        return new SenderChainKey({
+            iteration: this.iteration + 1,
+            chainKey: nextKey,
+        })
     }
 }

@@ -9,10 +9,10 @@ import { SignalProtocolAddress } from '../../signal-protocol-address'
 class InMemorySenderKeyStore implements SenderKeyStore {
     private store = new Map<string, SenderKeyRecord>()
     storeSenderKey(senderKeyName: SenderKeyName, record: SenderKeyRecord): void {
-        this.store.set(senderKeyName.serialize(), record)
+        this.store.set(senderKeyName.toString(), record)
     }
     loadSenderKey(senderKeyName: SenderKeyName): SenderKeyRecord {
-        return this.store.get(senderKeyName.serialize()) || new SenderKeyRecord()
+        return this.store.get(senderKeyName.toString()) || new SenderKeyRecord()
     }
 }
 
@@ -56,10 +56,10 @@ describe('GroupCipher (basic group message flow)', () => {
         const sessionBuilder = new GroupSessionBuilder(senderStore)
         await sessionBuilder.create(senderKeyName)
         const record = senderStore.loadSenderKey(senderKeyName)
-        const serialized = record.serialize()
-        const restored = SenderKeyRecord.fromSerialized(serialized)
+        const serialized = SenderKeyRecord.encode(record).finish()
+        const restored = SenderKeyRecord.decode(serialized)
         expect(restored.isEmpty()).toBe(false)
-        expect(restored.getSenderKeyState().getKeyId()).toBe(record.getSenderKeyState().getKeyId())
+        expect(restored.getSenderKeyState().keyId).toBe(record.getSenderKeyState().keyId)
     })
 
     it('should reject messages with invalid signature', async () => {
@@ -101,13 +101,13 @@ describe('GroupCipher (basic group message flow)', () => {
         const plaintext = new TextEncoder().encode('persisted message')
         const encrypted = await cipher.encrypt(plaintext)
         // Persist state
-        const senderRecordSerialized = senderStore.loadSenderKey(senderKeyName).serialize()
-        const receiverRecordSerialized = receiverStore.loadSenderKey(receiverKeyName).serialize()
+        const senderRecordSerialized = SenderKeyRecord.encode(senderStore.loadSenderKey(senderKeyName)).finish()
+        const receiverRecordSerialized = SenderKeyRecord.encode(receiverStore.loadSenderKey(receiverKeyName)).finish()
         // Restore state
         const senderStore2 = new InMemorySenderKeyStore()
         const receiverStore2 = new InMemorySenderKeyStore()
-        senderStore2.storeSenderKey(senderKeyName, SenderKeyRecord.fromSerialized(senderRecordSerialized))
-        receiverStore2.storeSenderKey(receiverKeyName, SenderKeyRecord.fromSerialized(receiverRecordSerialized))
+        senderStore2.storeSenderKey(senderKeyName, SenderKeyRecord.decode(senderRecordSerialized))
+        receiverStore2.storeSenderKey(receiverKeyName, SenderKeyRecord.decode(receiverRecordSerialized))
         // Decrypt with restored state
         const receiverCipher2 = new GroupCipher(receiverStore2, receiverKeyName)
         const decrypted = await receiverCipher2.decrypt(encrypted)

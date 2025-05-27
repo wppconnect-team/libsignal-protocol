@@ -38,9 +38,9 @@ export class SenderKeyName {
     }
 
     /**
-     * Serializes the tuple as a string.
+     * Returns a string representation of the SenderKeyName.
      */
-    serialize(): string {
+    toString(): string {
         return `${this.groupId}::${this.sender.name}::${this.sender.deviceId}`
     }
 

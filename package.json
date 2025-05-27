@@ -18,7 +18,7 @@
     "postversion": "git push && git push --tags",
     "compile-proto-test:js": "pbjs -t static-module --sparse -w commonjs --lint \"eslint-disable\" -o ./src/__test-utils__/PushMessages.js ./src/__test-utils__/PushMessages.proto",
     "compile-proto-test:ts": "pbts -o ./src/__test-utils__/PushMessages.d.ts ./src/__test-utils__/PushMessages.js",
-    "compile-proto:js": "pbjs -t static-module --sparse -w commonjs --lint \"eslint-disable\" -o ./src/protos/index.js ./protos/WhisperTextProtocol.proto ./protos/LocalStorageProtocol.proto",
+    "compile-proto:js": "pbjs -t static-module --sparse -w commonjs --lint \"eslint-disable\" -o ./src/protos/index.js ./protos/WhisperTextProtocol.proto",
     "compile-proto:ts": "pbts -o ./src/protos/index.d.ts ./src/protos/index.js"
   },
   "devDependencies": {

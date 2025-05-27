@@ -42,23 +42,19 @@ export class GroupCipher {
             const senderKeyState = record.getSenderKeyState()
 
             // Get the sender key for the given iteration
-            const iteration = senderKeyState.getSenderChainKey().getIteration()
-            const senderKey = await this.getSenderKey(senderKeyState, iteration === 0 ? 0 : iteration + 1)
+            const iteration = senderKeyState.senderChainKey.iteration
+            const senderKey = this.getSenderKey(senderKeyState, iteration === 0 ? 0 : iteration + 1)
 
             // Encrypt the plaintext
-            const ciphertext = await internal.crypto.encrypt(
-                senderKey.getCipherKey(),
-                paddedPlaintext,
-                senderKey.getIv()
-            )
-            const signingKeyPrivate = senderKeyState.getSigningKeyPrivate()
+            const ciphertext = internal.crypto.encrypt(senderKey.cipherKey, paddedPlaintext, senderKey.iv)
+            const signingKeyPrivate = senderKeyState.signingKey.private
 
             if (!signingKeyPrivate) throw new Error('Missing signing key')
 
             // Create the message and sign it
             const msg = await SenderKeyMessage.create(
-                senderKeyState.getKeyId(),
-                senderKey.getIteration(),
+                senderKeyState.keyId,
+                senderKey.iteration,
                 ciphertext,
                 signingKeyPrivate
             )
@@ -67,7 +63,7 @@ export class GroupCipher {
             return msg.serialize()
         }
 
-        return SessionLock.queueJobForNumber(this.senderKeyId.serialize(), runJob)
+        return SessionLock.queueJobForNumber(this.senderKeyId.toString(), runJob)
     }
 
     /**
@@ -78,46 +74,47 @@ export class GroupCipher {
     async decrypt(senderKeyMessageBytes: Uint8Array): Promise<Uint8Array> {
         const runJob = async () => {
             const record = await this.senderKeyStore.loadSenderKey(this.senderKeyId)
-            if (record.isEmpty()) throw new Error('No sender key for: ' + this.senderKeyId.serialize())
+            if (record.isEmpty()) throw new Error('No sender key for: ' + this.senderKeyId.toString())
             const msg = SenderKeyMessage.fromSerialized(senderKeyMessageBytes)
             // Search the correct state by keyId
             const senderKeyState = record.getSenderKeyStateById(msg.keyId)
-            const signingKeyPublic = senderKeyState.getSigningKeyPublic()
+            const signingKeyPublic = senderKeyState.signingKey.public
             if (!(await msg.verifySignature(signingKeyPublic))) throw new Error('Invalid signature')
 
             // Get the sender key for the given iteration
-            const iteration = senderKeyState.getSenderChainKey().getIteration()
-            const senderKey = await this.getSenderKey(senderKeyState, iteration)
+            const iteration = senderKeyState.senderChainKey.iteration
+            const senderKey = this.getSenderKey(senderKeyState, iteration)
 
             // Decrypt
             // const senderKey = await senderKeyState.getSenderChainKey().getSenderMessageKey()
-            const plaintext = await internal.crypto.decrypt(senderKey.getCipherKey(), msg.ciphertext, senderKey.getIv())
+            const plaintext = internal.crypto.decrypt(senderKey.cipherKey, msg.ciphertext, senderKey.iv)
             await this.senderKeyStore.storeSenderKey(this.senderKeyId, record)
             return plaintext
         }
 
-        return SessionLock.queueJobForNumber(this.senderKeyId.serialize(), runJob)
+        return SessionLock.queueJobForNumber(this.senderKeyId.toString(), runJob)
     }
 
-    private async getSenderKey(senderKeyState: SenderKeyState, iteration: number): Promise<SenderMessageKey> {
-        let senderChainKey = senderKeyState.getSenderChainKey()
-        if (senderChainKey.getIteration() > iteration) {
+    private getSenderKey(senderKeyState: SenderKeyState, iteration: number): SenderMessageKey {
+        let senderChainKey = senderKeyState.senderChainKey
+        if (senderChainKey.iteration > iteration) {
             if (senderKeyState.hasSenderMessageKey(iteration)) {
-                return (await senderKeyState.removeSenderMessageKey(iteration))!
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                return senderKeyState.removeSenderMessageKey(iteration)!
             }
-            throw new Error(`Received message with old counter: ${senderChainKey.getIteration()}, ${iteration}`)
+            throw new Error(`Received message with old counter: ${senderChainKey.iteration}, ${iteration}`)
         }
 
-        if (iteration - senderChainKey.getIteration() > 2000) {
+        if (iteration - senderChainKey.iteration > 2000) {
             throw new Error('Over 2000 messages into the future!')
         }
 
-        while (senderChainKey.getIteration() < iteration) {
-            senderKeyState.addSenderMessageKey(await senderChainKey.getSenderMessageKey())
-            senderChainKey = await senderChainKey.getNext()
+        while (senderChainKey.iteration < iteration) {
+            senderKeyState.addSenderMessageKey(senderChainKey.getSenderMessageKey())
+            senderChainKey = senderChainKey.getNext()
         }
 
-        senderKeyState.setSenderChainKey(await senderChainKey.getNext())
-        return await senderChainKey.getSenderMessageKey()
+        senderKeyState.senderChainKey = senderChainKey.getNext()
+        return senderChainKey.getSenderMessageKey()
     }
 }

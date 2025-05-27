@@ -51,10 +51,10 @@ export class Crypto {
      * const ciphertext = await crypto.encrypt(key, data, iv)
      * ```
      */
-    async encrypt(key: Uint8Array, data: Uint8Array, iv: Uint8Array): Promise<Uint8Array> {
+    encrypt(key: Uint8Array, data: Uint8Array, iv: Uint8Array): Uint8Array {
         const cipher = nodecrypto.createCipheriv('aes-' + key.length * 8 + '-cbc', key, iv)
         const encrypted = Buffer.concat([cipher.update(data), cipher.final()])
-        return new Uint8Array(encrypted)
+        return encrypted
     }
 
     /**
@@ -69,10 +69,10 @@ export class Crypto {
      * const plaintext = await crypto.decrypt(key, ciphertext, iv)
      * ```
      */
-    async decrypt(key: Uint8Array, data: Uint8Array, iv: Uint8Array): Promise<Uint8Array> {
+    decrypt(key: Uint8Array, data: Uint8Array, iv: Uint8Array): Uint8Array {
         const decipher = nodecrypto.createDecipheriv('aes-' + key.length * 8 + '-cbc', key, iv)
         const decrypted = Buffer.concat([decipher.update(data), decipher.final()])
-        return new Uint8Array(decrypted)
+        return decrypted
     }
 
     /**
@@ -87,10 +87,10 @@ export class Crypto {
      * ```
      * @see https://datatracker.ietf.org/doc/html/rfc2104
      */
-    async sign(key: Uint8Array, data: Uint8Array): Promise<Uint8Array> {
+    sign(key: Uint8Array, data: Uint8Array): Uint8Array {
         const hmac = nodecrypto.createHmac('sha256', key)
         hmac.update(data)
-        return new Uint8Array(hmac.digest())
+        return hmac.digest()
     }
 
     /**
@@ -104,10 +104,10 @@ export class Crypto {
      * ```
      * @see https://datatracker.ietf.org/doc/html/rfc6234
      */
-    async hash(data: Uint8Array): Promise<Uint8Array> {
+    hash(data: Uint8Array): Uint8Array {
         const hash = nodecrypto.createHash('sha512')
         hash.update(data)
-        return new Uint8Array(hash.digest())
+        return hash.digest()
     }
 
     /**
@@ -125,23 +125,23 @@ export class Crypto {
      * ```
      * @see https://datatracker.ietf.org/doc/html/rfc5869
      */
-    async HKDF(input: Uint8Array, salt: Uint8Array, info: Uint8Array | string): Promise<Uint8Array[]> {
+    HKDF(input: Uint8Array, salt: Uint8Array, info: Uint8Array | string): Uint8Array[] {
         const abInfo = typeof info === 'string' ? util.binaryStringToUint8Array(info) : info
         if (!abInfo) {
             throw new Error(`Invalid HKDF info`)
         }
 
-        const PRK = await this.sign(salt, input)
+        const PRK = this.sign(salt, input)
         const infoBuffer = new Uint8Array(abInfo.length + 1 + 32)
         infoBuffer.set(abInfo, 32)
         infoBuffer[infoBuffer.length - 1] = 1
-        const T1 = await this.sign(PRK, infoBuffer.slice(32))
+        const T1 = this.sign(PRK, infoBuffer.slice(32))
         infoBuffer.set(T1)
         infoBuffer[infoBuffer.length - 1] = 2
-        const T2 = await this.sign(PRK, infoBuffer)
+        const T2 = this.sign(PRK, infoBuffer)
         infoBuffer.set(T2)
         infoBuffer[infoBuffer.length - 1] = 3
-        const T3 = await this.sign(PRK, infoBuffer)
+        const T3 = this.sign(PRK, infoBuffer)
         return [T1, T2, T3]
     }
 
@@ -160,8 +160,8 @@ export class Crypto {
      * await crypto.verifyMAC(data, key, mac, 32)
      * ```
      */
-    async verifyMAC(data: Uint8Array, key: Uint8Array, mac: Uint8Array, length: number): Promise<void> {
-        const calculated_mac = await this.sign(key, data)
+    verifyMAC(data: Uint8Array, key: Uint8Array, mac: Uint8Array, length: number): void {
+        const calculated_mac = this.sign(key, data)
         if (mac.length != length || calculated_mac.length < length) {
             throw new Error('Bad MAC length')
         }
@@ -187,8 +187,8 @@ export class Crypto {
      * const mac = await crypto.calculateMAC(key, data)
      * ```
      */
-    async calculateMAC(key: Uint8Array, data: Uint8Array): Promise<Uint8Array> {
-        return await this.sign(key, data)
+    calculateMAC(key: Uint8Array, data: Uint8Array): Uint8Array {
+        return this.sign(key, data)
     }
 
     // Curve25519 crypto
