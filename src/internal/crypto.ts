@@ -1,41 +1,28 @@
 import { Curve } from './curve'
 import * as util from '../helpers'
 import { KeyPairType } from '../types'
-import { webcrypto } from 'crypto'
+import * as nodecrypto from 'crypto'
 
 /**
- * High-level cryptographic utility class using WebCrypto and Curve25519/Ed25519.
+ * High-level cryptographic utility class using Node.js crypto and Curve25519/Ed25519.
  *
  * Provides random bytes, symmetric encryption/decryption, HMAC, hashing, HKDF, and curve operations.
  *
- * - Uses WebCrypto API for symmetric and hash operations.
- * - Uses Curve25519/Ed25519 for asymmetric operations (via Curve class).
+ * - Usa Node.js crypto para operações simétricas e de hash.
+ * - Usa Curve25519/Ed25519 para operações assimétricas (via classe Curve).
  *
  * References:
- * - WebCrypto: https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API
- * - HKDF: https://datatracker.ietf.org/doc/html/rfc5869
  * - Signal/libsignal: https://github.com/signalapp/libsignal-protocol-java
  */
 export class Crypto {
     private _curve: Curve
-    private _webcrypto: webcrypto.Crypto
 
     /**
-     * Creates a new Crypto instance.
-     * @param curve Optional custom Curve instance
-     * @param crypto Optional custom WebCrypto implementation
+     * Cria uma nova instância de Crypto.
+     * @param curve Instância opcional de Curve
      */
-    constructor(curve?: Curve, crypto?: webcrypto.Crypto) {
+    constructor(curve?: Curve) {
         this._curve = curve || new Curve()
-        this._webcrypto = crypto || webcrypto
-    }
-
-    /**
-     * Sets the WebCrypto implementation.
-     * @param wc WebCrypto instance
-     */
-    set webcrypto(wc: webcrypto.Crypto) {
-        this._webcrypto = wc
     }
 
     /**
@@ -49,14 +36,12 @@ export class Crypto {
      * ```
      */
     getRandomBytes(n: number): Uint8Array {
-        const array = new Uint8Array(n)
-        this._webcrypto.getRandomValues(array)
-        return array
+        return nodecrypto.randomBytes(n)
     }
 
     /**
      * Encrypts data using AES-CBC.
-     * @param key 16/24/32-byte AES key as Uint8Array
+     * @param key AES key of 16/24/32 bytes as Uint8Array
      * @param data Data to encrypt as Uint8Array
      * @param iv 16-byte initialization vector as Uint8Array
      * @returns Promise resolving to encrypted data as Uint8Array
@@ -65,17 +50,16 @@ export class Crypto {
      * ```ts
      * const ciphertext = await crypto.encrypt(key, data, iv)
      * ```
-     * @see https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/encrypt
      */
     async encrypt(key: Uint8Array, data: Uint8Array, iv: Uint8Array): Promise<Uint8Array> {
-        const impkey = await this._webcrypto.subtle.importKey('raw', key, { name: 'AES-CBC' }, false, ['encrypt'])
-        const result = await this._webcrypto.subtle.encrypt({ name: 'AES-CBC', iv }, impkey, data)
-        return new Uint8Array(result)
+        const cipher = nodecrypto.createCipheriv('aes-' + key.length * 8 + '-cbc', key, iv)
+        const encrypted = Buffer.concat([cipher.update(data), cipher.final()])
+        return new Uint8Array(encrypted)
     }
 
     /**
      * Decrypts data using AES-CBC.
-     * @param key 16/24/32-byte AES key as Uint8Array
+     * @param key AES key of 16/24/32 bytes as Uint8Array
      * @param data Data to decrypt as Uint8Array
      * @param iv 16-byte initialization vector as Uint8Array
      * @returns Promise resolving to decrypted data as Uint8Array
@@ -84,12 +68,11 @@ export class Crypto {
      * ```ts
      * const plaintext = await crypto.decrypt(key, ciphertext, iv)
      * ```
-     * @see https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/decrypt
      */
     async decrypt(key: Uint8Array, data: Uint8Array, iv: Uint8Array): Promise<Uint8Array> {
-        const impkey = await this._webcrypto.subtle.importKey('raw', key, { name: 'AES-CBC' }, false, ['decrypt'])
-        const result = await this._webcrypto.subtle.decrypt({ name: 'AES-CBC', iv }, impkey, data)
-        return new Uint8Array(result)
+        const decipher = nodecrypto.createDecipheriv('aes-' + key.length * 8 + '-cbc', key, iv)
+        const decrypted = Buffer.concat([decipher.update(data), decipher.final()])
+        return new Uint8Array(decrypted)
     }
 
     /**
@@ -105,18 +88,9 @@ export class Crypto {
      * @see https://datatracker.ietf.org/doc/html/rfc2104
      */
     async sign(key: Uint8Array, data: Uint8Array): Promise<Uint8Array> {
-        const paddedKey = new Uint8Array(key.length || 32)
-        paddedKey.set(key)
-
-        const impkey = await this._webcrypto.subtle.importKey(
-            'raw',
-            paddedKey,
-            { name: 'HMAC', hash: { name: 'SHA-256' } },
-            false,
-            ['sign']
-        )
-        const result = await this._webcrypto.subtle.sign({ name: 'HMAC', hash: 'SHA-256' }, impkey, data)
-        return new Uint8Array(result)
+        const hmac = nodecrypto.createHmac('sha256', key)
+        hmac.update(data)
+        return new Uint8Array(hmac.digest())
     }
 
     /**
@@ -131,8 +105,9 @@ export class Crypto {
      * @see https://datatracker.ietf.org/doc/html/rfc6234
      */
     async hash(data: Uint8Array): Promise<Uint8Array> {
-        const result = await this._webcrypto.subtle.digest({ name: 'SHA-512' }, data)
-        return new Uint8Array(result)
+        const hash = nodecrypto.createHash('sha512')
+        hash.update(data)
+        return new Uint8Array(hash.digest())
     }
 
     /**

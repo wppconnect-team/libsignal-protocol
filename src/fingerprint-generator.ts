@@ -1,6 +1,6 @@
 import { FingerprintGeneratorType } from './'
 import * as utils from './helpers'
-import { webcrypto } from 'crypto'
+import * as internal from './internal'
 
 /**
  * Generates human-readable fingerprints for identity verification, inspired by the Signal/libsignal protocol.
@@ -73,7 +73,7 @@ async function getDisplayStringFor(identifier: string, key: Uint8Array, iteratio
  */
 async function iterateHash(data: Uint8Array, key: Uint8Array, count: number): Promise<Uint8Array> {
     const data1 = concatUint8Arrays([data, key])
-    const result = await webcrypto.subtle.digest({ name: 'SHA-512' }, data1)
+    const result = await internal.crypto.hash(data1)
     if (--count === 0) {
         return new Uint8Array(result)
     } else {

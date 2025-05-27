@@ -8,4 +8,4 @@ export * from './session-types'
 export * from './signal-protocol-address'
 export * from './types'
 
-export { crypto, curve, setCurve, setWebCrypto } from './internal'
+export { crypto, curve, setCurve } from './internal'
