@@ -21,37 +21,37 @@ describe('NumericFingerprint', function () {
         key: new Uint8Array(BOB_IDENTITY),
     }
 
-    test('returns the correct fingerprint', async () => {
+    test('returns the correct fingerprint', () => {
         jest.setTimeout(20000)
         const generator = new FingerprintGenerator(5200)
         // const t = Date.now()
-        const f = await generator.createFor(alice.identifier, alice.key, bob.identifier, bob.key)
+        const f = generator.createFor(alice.identifier, alice.key, bob.identifier, bob.key)
         // console.log(`import crypto time:`, { time: Date.now() - t })
         expect(f).toBe(FINGERPRINT)
     })
 
-    test('alice and bob results match', async () => {
+    test('alice and bob results match', () => {
         jest.setTimeout(10000)
         const generator = new FingerprintGenerator(1024)
-        const a = await generator.createFor(alice.identifier, alice.key, bob.identifier, bob.key)
-        const b = await generator.createFor(bob.identifier, bob.key, alice.identifier, alice.key)
+        const a = generator.createFor(alice.identifier, alice.key, bob.identifier, bob.key)
+        const b = generator.createFor(bob.identifier, bob.key, alice.identifier, alice.key)
         expect(a).toBe(b)
     })
 
-    test('alice and !bob results mismatch', async () => {
+    test('alice and !bob results mismatch', () => {
         jest.setTimeout(10000)
         const generator = new FingerprintGenerator(1024)
-        const a = await generator.createFor(alice.identifier, alice.key, '+15558675309', bob.key)
-        const b = await generator.createFor(bob.identifier, bob.key, alice.identifier, alice.key)
+        const a = generator.createFor(alice.identifier, alice.key, '+15558675309', bob.key)
+        const b = generator.createFor(bob.identifier, bob.key, alice.identifier, alice.key)
         expect(a).not.toBe(b)
     })
 
-    test('alice and mitm results mismatch', async () => {
+    test('alice and mitm results mismatch', () => {
         jest.setTimeout(10000)
         const mitm = Internal.crypto.getRandomBytes(33)
         const generator = new FingerprintGenerator(1024)
-        const a = await generator.createFor(alice.identifier, alice.key, bob.identifier, mitm)
-        const b = await generator.createFor(bob.identifier, bob.key, alice.identifier, alice.key)
+        const a = generator.createFor(alice.identifier, alice.key, bob.identifier, mitm)
+        const b = generator.createFor(bob.identifier, bob.key, alice.identifier, alice.key)
         expect(a).not.toBe(b)
     })
 })

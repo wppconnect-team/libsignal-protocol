@@ -81,10 +81,10 @@ class Curve25519 implements CurveType {
  * @example
  * ```ts
  * const curve = new Curve()
- * const keyPair = await curve.createKeyPair(privKey)
- * const shared = await curve.ECDHE(pubKey, privKey)
- * const sig = await curve.Ed25519Sign(privKey, message)
- * const valid = await curve.Ed25519Verify(pubKey, message, sig)
+ * const keyPair = curve.createKeyPair(privKey)
+ * const shared = curve.ECDHE(pubKey, privKey)
+ * const sig = curve.Ed25519Sign(privKey, message)
+ * const valid = curve.Ed25519Verify(pubKey, message, sig)
  * ```
  */
 export class Curve {
@@ -106,19 +106,19 @@ export class Curve {
      * The returned public key is prefixed with 0x05 (33 bytes total), following the libsignal protocol standard.
      *
      * @param privKey 32-byte private key as Uint8Array
-     * @returns Promise resolving to KeyPairType, where pubKey is a 33-byte Uint8Array (0x05-prefixed)
+     * @returns KeyPairType, where pubKey is a 33-byte Uint8Array (0x05-prefixed)
      *
      * @example
      * ```ts
-     * const keyPair = await curve.createKeyPair(privKey)
+     * const keyPair = curve.createKeyPair(privKey)
      * // keyPair.pubKey[0] === 0x05
      * // keyPair.pubKey.length === 33
      * ```
      * @see https://github.com/signalapp/libsignal-protocol-java/blob/master/java/src/main/java/org/whispersystems/libsignal/ecc/Curve.java
      */
-    async createKeyPair(privKey: Uint8Array): Promise<KeyPairType> {
+    createKeyPair(privKey: Uint8Array): KeyPairType {
         validatePrivKey(privKey)
-        const raw_keys = await this._curve.createKeyPair(privKey)
+        const raw_keys = this._curve.createKeyPair(privKey)
         return processKeys(raw_keys)
     }
 
@@ -126,9 +126,9 @@ export class Curve {
      * Performs ECDH to derive a shared secret.
      * @param pubKey 32-byte public key as Uint8Array
      * @param privKey 32-byte private key as Uint8Array
-     * @returns Promise resolving to shared secret as Uint8Array
+     * @returns Shared secret as Uint8Array
      */
-    async ECDHE(pubKey: Uint8Array, privKey: Uint8Array): Promise<Uint8Array> {
+    ECDHE(pubKey: Uint8Array, privKey: Uint8Array): Uint8Array {
         pubKey = validatePubKeyFormat(pubKey)
         validatePrivKey(privKey)
 
@@ -136,23 +136,23 @@ export class Curve {
             throw new Error('Invalid public key')
         }
 
-        return await this._curve.calculateAgreement(pubKey, privKey)
+        return this._curve.calculateAgreement(pubKey, privKey)
     }
 
     /**
      * Signs a message using Ed25519.
      * @param privKey 32-byte private key as Uint8Array
      * @param message Message to sign as Uint8Array
-     * @returns Promise resolving to signature as Uint8Array (64 bytes)
+     * @returns Signature as Uint8Array (64 bytes)
      */
-    async Ed25519Sign(privKey: Uint8Array, message: Uint8Array): Promise<Uint8Array> {
+    Ed25519Sign(privKey: Uint8Array, message: Uint8Array): Uint8Array {
         validatePrivKey(privKey)
 
         if (message === undefined) {
             throw new Error('Invalid message')
         }
 
-        return await this._curve.calculateSignature(privKey, message)
+        return this._curve.calculateSignature(privKey, message)
     }
 
     /**
@@ -160,9 +160,9 @@ export class Curve {
      * @param pubKey 32-byte public key as Uint8Array
      * @param msg Message as Uint8Array
      * @param sig Signature as Uint8Array (64 bytes)
-     * @returns Promise resolving to true if valid, false otherwise
+     * @returns True if valid, false otherwise
      */
-    async Ed25519Verify(pubKey: Uint8Array, msg: Uint8Array, sig: Uint8Array): Promise<boolean> {
+    Ed25519Verify(pubKey: Uint8Array, msg: Uint8Array, sig: Uint8Array): boolean {
         pubKey = validatePubKeyFormat(pubKey)
 
         if (pubKey === undefined || pubKey.length != 32) {
@@ -177,7 +177,7 @@ export class Curve {
             throw new Error('Invalid signature')
         }
 
-        return await this._curve.verifySignature(pubKey, msg, sig)
+        return this._curve.verifySignature(pubKey, msg, sig)
     }
 }
 

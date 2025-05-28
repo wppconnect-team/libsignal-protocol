@@ -65,7 +65,7 @@ export class SenderKeyMessage {
 
         const serialized = new Uint8Array([versionByte, ...encoded])
 
-        const signature = await internal.crypto.Ed25519Sign(signingKeyPrivate, serialized)
+        const signature = internal.crypto.Ed25519Sign(signingKeyPrivate, serialized)
 
         return new SenderKeyMessage(keyId, iteration, ciphertext, serialized, signature, version)
     }
@@ -76,7 +76,7 @@ export class SenderKeyMessage {
      * @returns Promise resolving to true if valid, false otherwise
      */
     async verifySignature(signingKeyPublic: Uint8Array): Promise<boolean> {
-        return await internal.crypto.Ed25519Verify(signingKeyPublic, this.serialized, this.signature)
+        return internal.crypto.Ed25519Verify(signingKeyPublic, this.serialized, this.signature)
     }
 
     /**

@@ -90,12 +90,12 @@ async function setupReceiveStep(
         return Promise.resolve()
     }
 
-    const keyPair = await Internal.crypto.createKeyPair(data.ourIdentityKey)
+    const keyPair = Internal.crypto.createKeyPair(data.ourIdentityKey)
     store.put('identityKey', keyPair)
-    const signedKeyPair = await Internal.crypto.createKeyPair(data.ourSignedPreKey)
+    const signedKeyPair = Internal.crypto.createKeyPair(data.ourSignedPreKey)
     await store.storeSignedPreKey(data.signedPreKeyId, signedKeyPair)
     if (data.ourPreKey !== undefined) {
-        const keyPair = await Internal.crypto.createKeyPair(data.ourPreKey)
+        const keyPair = Internal.crypto.createKeyPair(data.ourPreKey)
         await store.storePreKey(data.preKeyId, keyPair)
     }
 }
@@ -188,12 +188,10 @@ async function setupSendStep(
     }
 
     if (data.ourIdentityKey !== undefined) {
-        try {
-            const keyPair: KeyPairType = await Internal.crypto.createKeyPair(data.ourIdentityKey)
-            store.put('identityKey', keyPair)
-        } catch (e) {
-            console.error({ e })
-        }
+        const keyPair = Internal.crypto.createKeyPair(data.ourIdentityKey)
+        if (!data.ourIdentityKey || utils.uint8ArrayToBinaryString(keyPair.privKey) != utils.uint8ArrayToBinaryString(data.ourIdentityKey))
+            throw new Error('Failed to rederive private key!')
+        store.put('identityKey', keyPair)
     }
     return Promise.resolve()
 }
@@ -327,14 +325,10 @@ tv.forEach(function (test) {
                     throw new Error('Out of private keys')
                 } else {
                     const privKey = privKeyQueue.shift()
-                    return Internal.crypto.createKeyPair(privKey).then(function (keyPair) {
-                        if (
-                            !privKey ||
-                            utils.uint8ArrayToBinaryString(keyPair.privKey) != utils.uint8ArrayToBinaryString(privKey)
-                        )
-                            throw new Error('Failed to rederive private key!')
-                        else return keyPair
-                    })
+                    const keyPair = Internal.crypto.createKeyPair(privKey)
+                    if (!privKey || utils.uint8ArrayToBinaryString(keyPair.privKey) != utils.uint8ArrayToBinaryString(privKey))
+                        throw new Error('Failed to rederive private key!')
+                    return keyPair
                 }
             }
         })

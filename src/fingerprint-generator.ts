@@ -22,16 +22,16 @@ export class FingerprintGenerator implements FingerprintGeneratorType {
      * @param localIdentityKey Local user's identity public key
      * @param remoteIdentifier Remote user identifier
      * @param remoteIdentityKey Remote user's identity public key
-     * @returns Promise resolving to a fingerprint string
+     * @returns a fingerprint string
      */
-    async createFor(
+    createFor(
         localIdentifier: string,
         localIdentityKey: Uint8Array,
         remoteIdentifier: string,
         remoteIdentityKey: Uint8Array
-    ): Promise<string> {
-        const localStr = await getDisplayStringFor(localIdentifier, localIdentityKey, this._iterations)
-        const remoteStr = await getDisplayStringFor(remoteIdentifier, remoteIdentityKey, this._iterations)
+    ): string {
+        const localStr = getDisplayStringFor(localIdentifier, localIdentityKey, this._iterations)
+        const remoteStr = getDisplayStringFor(remoteIdentifier, remoteIdentityKey, this._iterations)
         return [localStr, remoteStr].sort().join('')
     }
 
@@ -48,14 +48,14 @@ export class FingerprintGenerator implements FingerprintGeneratorType {
  * Generates a display string for a given identifier and key.
  * @private
  */
-async function getDisplayStringFor(identifier: string, key: Uint8Array, iterations: number): Promise<string> {
-    const bytes = concatUint8Arrays([
+function getDisplayStringFor(identifier: string, key: Uint8Array, iterations: number): string {
+    const bytes = Buffer.concat([
         shortToUint8Array(FingerprintGenerator.VERSION),
         key,
         utils.binaryStringToUint8Array(identifier),
     ])
 
-    const hash = await iterateHash(bytes, key, iterations)
+    const hash = iterateHash(bytes, key, iterations)
     const output = new Uint8Array(hash)
     return (
         getEncodedChunk(output, 0) +
@@ -71,9 +71,9 @@ async function getDisplayStringFor(identifier: string, key: Uint8Array, iteratio
  * Iteratively hashes the data with the key for a given number of rounds using SHA-512.
  * @private
  */
-async function iterateHash(data: Uint8Array, key: Uint8Array, count: number): Promise<Uint8Array> {
-    const data1 = concatUint8Arrays([data, key])
-    const result = await internal.crypto.hash(data1)
+function iterateHash(data: Uint8Array, key: Uint8Array, count: number): Uint8Array {
+    const data1 = Buffer.concat([data, key])
+    const result = internal.crypto.hash(data1)
     if (--count === 0) {
         return new Uint8Array(result)
     } else {
@@ -108,17 +108,3 @@ function shortToUint8Array(number: number): Uint8Array {
     return new Uint8Array(new Uint16Array([number]).buffer)
 }
 
-/**
- * Concatenates multiple Uint8Arrays into one.
- * @private
- */
-function concatUint8Arrays(bufs: Uint8Array[]): Uint8Array {
-    const lengths = bufs.map((b) => b.length)
-    const totalLength = lengths.reduce((p, c) => p + c, 0)
-    const result = new Uint8Array(totalLength)
-    lengths.reduce((p, c, i) => {
-        result.set(bufs[i], p)
-        return p + c
-    }, 0)
-    return result
-}

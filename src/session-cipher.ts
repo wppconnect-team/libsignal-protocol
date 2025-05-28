@@ -82,7 +82,7 @@ export class SessionCipher {
 
         const { session, chain } = await this.prepareChain(address, record, msg)
 
-        const keys = await internal.crypto.HKDF(
+        const keys = internal.crypto.HKDF(
             chain.messageKeys[chain.chainKey.counter],
             new Uint8Array(32),
             'WhisperMessageKeys'
@@ -92,7 +92,7 @@ export class SessionCipher {
         msg.counter = chain.chainKey.counter
         msg.previousCounter = session.currentRatchet.previousCounter
 
-        const ciphertext = await internal.crypto.encrypt(keys[0], buffer, keys[2].slice(0, 16))
+        const ciphertext = internal.crypto.encrypt(keys[0], buffer, keys[2].slice(0, 16))
         msg.ciphertext = new Uint8Array(ciphertext)
         const encodedMsg = textsecure.SignalMessage.encode(msg).finish()
 
@@ -102,7 +102,7 @@ export class SessionCipher {
         macInput[33 * 2] = (3 << 4) | 3
         macInput.set(encodedMsg, 33 * 2 + 1)
 
-        const mac = await internal.crypto.sign(keys[1], macInput)
+        const mac = internal.crypto.sign(keys[1], macInput)
 
         const encodedMsgWithMAC = new Uint8Array(encodedMsg.byteLength + 9)
         encodedMsgWithMAC[0] = (3 << 4) | 3
@@ -202,9 +202,9 @@ export class SessionCipher {
         // Compute KDF_CK as described in X3DH specification
         const byteArray = new Uint8Array(1)
         byteArray[0] = 1
-        const mac = await internal.crypto.sign(ckey, byteArray)
+        const mac = internal.crypto.sign(ckey, byteArray)
         byteArray[0] = 2
-        const key = await internal.crypto.sign(ckey, byteArray)
+        const key = internal.crypto.sign(ckey, byteArray)
 
         chain.messageKeys[chain.chainKey.counter + 1] = mac
         chain.chainKey.key = key
@@ -218,8 +218,8 @@ export class SessionCipher {
         if (!ratchet.ephemeralKeyPair) {
             throw new Error(`currentRatchet has no ephemeral key. Cannot calculateRatchet.`)
         }
-        const sharedSecret = await internal.crypto.ECDHE(remoteKey, ratchet.ephemeralKeyPair.privKey)
-        const masterKey = await internal.crypto.HKDF(sharedSecret, ratchet.rootKey, 'WhisperRatchet')
+        const sharedSecret = internal.crypto.ECDHE(remoteKey, ratchet.ephemeralKeyPair.privKey)
+        const masterKey = internal.crypto.HKDF(sharedSecret, ratchet.rootKey, 'WhisperRatchet')
         let ephemeralPublicKey: Uint8Array
         if (sending) {
             ephemeralPublicKey = ratchet.ephemeralKeyPair.pubKey
@@ -420,7 +420,7 @@ export class SessionCipher {
             throw e
         }
         delete chain.messageKeys[message.counter!]
-        const keys = await internal.crypto.HKDF(messageKey, new Uint8Array(32), 'WhisperMessageKeys')
+        const keys = internal.crypto.HKDF(messageKey, new Uint8Array(32), 'WhisperMessageKeys')
 
         const ourIdentityKey = await this.storage.getIdentityKeyPair()
         if (!ourIdentityKey) {
@@ -433,9 +433,9 @@ export class SessionCipher {
         macInput[33 * 2] = (3 << 4) | 3
         macInput.set(new Uint8Array(messageProto), 33 * 2 + 1)
 
-        await internal.crypto.verifyMAC(macInput, keys[1], mac, 8)
+        internal.crypto.verifyMAC(macInput, keys[1], mac, 8)
 
-        const plaintext = await internal.crypto.decrypt(keys[0], message.ciphertext!, keys[2].slice(0, 16))
+        const plaintext = internal.crypto.decrypt(keys[0], message.ciphertext!, keys[2].slice(0, 16))
 
         delete session.pendingPreKey
         return plaintext
@@ -468,7 +468,7 @@ export class SessionCipher {
             ratchet.previousCounter = session.chains[previousRatchetKey].chainKey.counter
             delete session.chains[previousRatchetKey]
         }
-        const keyPair = await internal.crypto.createKeyPair()
+        const keyPair = internal.crypto.createKeyPair()
         ratchet.ephemeralKeyPair = keyPair
         await this.calculateRatchet(session, remoteKey, true)
         ratchet.lastRemoteEphemeralKey = remoteKey

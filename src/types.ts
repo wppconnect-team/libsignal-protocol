@@ -23,7 +23,7 @@ export interface FingerprintGeneratorType {
         localIdentityKey: Uint8Array,
         remoteIdentifier: string,
         remoteIdentityKey: Uint8Array
-    ) => Promise<string>
+    ) => string
 }
 
 /**
@@ -109,8 +109,8 @@ export interface StorageType {
  * Interface for cryptographic curve operations (Curve25519/Ed25519).
  */
 export interface CurveType {
-    createKeyPair: (privKey: Uint8Array) => KeyPairType | Promise<KeyPairType>
-    calculateAgreement: (pubKey: Uint8Array, privKey: Uint8Array) => Uint8Array | Promise<Uint8Array>
-    verifySignature: (pubKey: Uint8Array, msg: Uint8Array, sig: Uint8Array) => boolean | Promise<boolean>
-    calculateSignature: (privKey: Uint8Array, message: Uint8Array) => Uint8Array | Promise<Uint8Array>
+    createKeyPair: (privKey: Uint8Array) => KeyPairType
+    calculateAgreement: (pubKey: Uint8Array, privKey: Uint8Array) => Uint8Array
+    verifySignature: (pubKey: Uint8Array, msg: Uint8Array, sig: Uint8Array) => boolean
+    calculateSignature: (privKey: Uint8Array, message: Uint8Array) => Uint8Array
 }

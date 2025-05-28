@@ -59,17 +59,16 @@ export class GroupSessionBuilder {
             // Returns an object representing SenderKeyDistributionMessage
             const senderKeyRecord = await this.senderKeyStore.loadSenderKey(senderKeyName)
             if (senderKeyRecord.isEmpty()) {
+                const identityKey = KeyHelper.generateIdentityKeyPair()
+
                 senderKeyRecord.setSenderKeyState(
                     KeyHelper.generateRegistrationId(),
                     0,
-                    await KeyHelper.generateSenderKey(),
-                    await KeyHelper.generateIdentityKeyPair().then(
-                        (keyPair) =>
-                            new SenderSigningKey({
-                                public: keyPair.pubKey,
-                                private: keyPair.privKey,
-                            })
-                    )
+                    KeyHelper.generateSenderKey(),
+                    new SenderSigningKey({
+                        public: identityKey.pubKey,
+                        private: identityKey.privKey,
+                    })
                 )
                 await this.senderKeyStore.storeSenderKey(senderKeyName, senderKeyRecord)
             }

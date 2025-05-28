@@ -20,7 +20,7 @@ export const KeyHelper = {
      * Generates a Curve25519 identity key pair.
      * @returns Promise resolving to a KeyPairType
      */
-    generateIdentityKeyPair(): Promise<KeyPairType> {
+    generateIdentityKeyPair(): KeyPairType {
         return internal.crypto.createKeyPair()
     },
 
@@ -40,7 +40,7 @@ export const KeyHelper = {
      * @returns Promise resolving to a SignedPreKeyPairType
      * @throws TypeError if arguments are invalid
      */
-    async generateSignedPreKey(identityKeyPair: KeyPairType, signedKeyId: number): Promise<SignedPreKeyPairType> {
+    generateSignedPreKey(identityKeyPair: KeyPairType, signedKeyId: number): SignedPreKeyPairType {
         if (
             !(identityKeyPair.privKey instanceof Uint8Array) ||
             identityKeyPair.privKey.byteLength !== 32 ||
@@ -52,8 +52,8 @@ export const KeyHelper = {
         if (!isNonNegativeInteger(signedKeyId)) {
             throw new TypeError('Invalid argument for signedKeyId: ' + signedKeyId)
         }
-        const keyPair = await internal.crypto.createKeyPair()
-        const sig = await internal.crypto.Ed25519Sign(identityKeyPair.privKey, keyPair.pubKey)
+        const keyPair = internal.crypto.createKeyPair()
+        const sig = internal.crypto.Ed25519Sign(identityKeyPair.privKey, keyPair.pubKey)
         return {
             keyId: signedKeyId,
             keyPair: keyPair,
@@ -65,7 +65,7 @@ export const KeyHelper = {
      * Generates a random 32-byte sender key.
      * @returns Promise resolving to a Uint8Array
      */
-    async generateSenderKey(): Promise<Uint8Array> {
+    generateSenderKey(): Uint8Array {
         return internal.crypto.getRandomBytes(32)
     },
 
@@ -75,12 +75,12 @@ export const KeyHelper = {
      * @returns Promise resolving to a PreKeyPairType
      * @throws TypeError if keyId is invalid
      */
-    async generatePreKey(keyId: number): Promise<PreKeyPairType> {
+    generatePreKey(keyId: number): PreKeyPairType {
         if (!isNonNegativeInteger(keyId)) {
             throw new TypeError('Invalid argument for keyId: ' + keyId)
         }
 
-        const keyPair = await internal.crypto.createKeyPair()
+        const keyPair = internal.crypto.createKeyPair()
         return { keyId: keyId, keyPair: keyPair }
     },
 }

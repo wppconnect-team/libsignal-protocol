@@ -30,36 +30,36 @@ describe('KeyHelper', function () {
     })
 
     describe('generatePreKey', function () {
-        test(`generates a PreKey`, async () => {
-            const pk = await KeyHelper.generatePreKey(1337)
+        test(`generates a PreKey`, () => {
+            const pk = KeyHelper.generatePreKey(1337)
             validateKeyPair(pk.keyPair)
             expect(pk.keyId).toStrictEqual(1337)
         })
 
-        test(`throws on bad ID`, async () => {
-            await expect(async () => {
-                await KeyHelper.generatePreKey(-7)
-            }).rejects.toThrow()
+        test(`throws on bad ID`, () => {
+            expect(() => {
+                KeyHelper.generatePreKey(-7)
+            }).toThrow()
         })
     })
 
     describe('generateSignedPreKey', function () {
-        test(`generates a PreKey`, async () => {
-            const identityKey = await KeyHelper.generateIdentityKeyPair()
+        test(`generates a PreKey`, () => {
+            const identityKey = KeyHelper.generateIdentityKeyPair()
 
-            const spk = await KeyHelper.generateSignedPreKey(identityKey, 1337)
+            const spk = KeyHelper.generateSignedPreKey(identityKey, 1337)
             validateKeyPair(spk.keyPair)
             expect(spk.keyId).toStrictEqual(1337)
-            await expect(
+            expect(
                 Internal.crypto.Ed25519Verify(identityKey.pubKey, spk.keyPair.pubKey, spk.signature)
-            ).resolves.toBe(true)
+            ).toBe(true)
         })
 
-        test(`throws on bad ID`, async () => {
-            const identityKey = await KeyHelper.generateIdentityKeyPair()
-            await expect(async () => {
-                await KeyHelper.generateSignedPreKey(identityKey, -7)
-            }).rejects.toThrow()
+        test(`throws on bad ID`, () => {
+            const identityKey = KeyHelper.generateIdentityKeyPair()
+            expect(() => {
+                KeyHelper.generateSignedPreKey(identityKey, -7)
+            }).toThrow()
         })
     })
 })
