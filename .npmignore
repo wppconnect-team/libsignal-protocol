@@ -1,0 +1,13 @@
+__test__
+__test-utils__
+.*
+*.tgz
+*.zip
+/eslint.config.mjs
+/jest.config.js
+/node_modules
+/package-lock.json
+/prettier.config.js
+/protos
+/src
+/tsconfig.json

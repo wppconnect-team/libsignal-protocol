@@ -40,10 +40,5 @@
     "@wppconnect/curve25519": "^1.0.0",
     "long": "^5.3.2",
     "protobufjs": "^7.4.0"
-  },
-  "files": [
-    "lib/*.js",
-    "lib/*.d.ts",
-    "lib/internal/**/*"
-  ]
+  }
 }
