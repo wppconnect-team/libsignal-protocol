@@ -20,11 +20,23 @@ export class SignalProtocolAddress implements SignalProtocolAddressType {
      * @throws Error if the string is invalid
      */
     static fromString(s: string): SignalProtocolAddress {
-        if (!s.match(/.*\.\d+/)) {
+        if (typeof s !== 'string') {
             throw new Error(`Invalid SignalProtocolAddress string: ${s}`)
         }
-        const parts = s.split('.')
-        return new SignalProtocolAddress(parts[0], parseInt(parts[1]))
+
+        const separator = s.lastIndexOf('.')
+        const name = s.slice(0, separator)
+        const deviceText = s.slice(separator + 1)
+        const hasOnlyDigits =
+            deviceText.length > 0 &&
+            Array.from(deviceText).every((char) => char >= '0' && char <= '9')
+        const deviceId = Number(deviceText)
+
+        if (separator <= 0 || !hasOnlyDigits || !Number.isSafeInteger(deviceId)) {
+            throw new Error(`Invalid SignalProtocolAddress string: ${s}`)
+        }
+
+        return new SignalProtocolAddress(name, deviceId)
     }
 
     private _name: string
