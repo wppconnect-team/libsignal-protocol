@@ -29,7 +29,7 @@ describe('SignalProtocolAddress', function () {
     })
     describe('fromString', function () {
         test('throws on a bad inputs', () => {
-            const bads = ['', null, {}]
+            const bads = ['', null, {}, 'name', '.1', 'name.', 'name.one', 'name.1extra']
             for (const bad of bads) {
                 expect(() => {
                     // We are testing data that Typescript wouldn't allow
@@ -45,6 +45,12 @@ describe('SignalProtocolAddress', function () {
             expect(address.deviceId).toBe(deviceId)
             expect(address.getName()).toBe(name)
             expect(address.name).toBe(name)
+        })
+
+        test('preserves dots in the address name', () => {
+            const address = SignalProtocolAddress.fromString('tenant.alice.7')
+            expect(address.name).toBe('tenant.alice')
+            expect(address.deviceId).toBe(7)
         })
     })
 })
