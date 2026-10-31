@@ -1,143 +1,104 @@
+**English** | [Português (Brasil)](./README.pt-BR.md)
+
+<p align="center">
+  <a href="https://wppconnect.io/">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://wppconnect-team.github.io/brand/wppconnect-dark.png" />
+      <img src="https://wppconnect-team.github.io/brand/wppconnect-light.png" alt="WPPConnect" width="220" height="121" />
+    </picture>
+  </a>
+</p>
+
 # @wppconnect/libsignal-protocol
 
-Signal Protocol Typescript library — forked from [privacyresearchgroup/libsignal-protocol-typescript](https://github.com/privacyresearchgroup/libsignal-protocol-typescript), with adaptations and improvements for the WPPConnect ecosystem.
+Implement Signal Protocol sessions and key handling in TypeScript.
 
-> **Note:** This project uses [`@wppconnect/curve25519`](https://www.npmjs.com/package/@wppconnect/curve25519) as the default implementation for elliptic curve operations (X25519/Ed25519).
+A WPPConnect Team fork in the WPPConnect ecosystem. Original project credits and license are preserved.
 
-## Code layout
+[Getting started](#getting-started) | [Documentation](#documentation) | [Contributing](#contributing) | [Support WPPConnect](#support-the-project)
 
-```
-/lib                # contains MSR's crypto library
-/src                # TS source files
-/src/__test__       # Tests
-/src/__test-utils__ # Test Utilities
-```
+[![License: GPL-3.0-only](https://img.shields.io/badge/license-GPL--3.0--only-blue)](./LICENSE) [![CI](https://github.com/wppconnect-team/libsignal-protocol/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/wppconnect-team/libsignal-protocol/actions/workflows/build.yml) [![Documentation](https://img.shields.io/badge/docs-WPPConnect-blue)](https://wppconnect.io/) [![Open Collective](https://img.shields.io/badge/Open%20Collective-WPPConnect-blue)](https://opencollective.com/wppconnect)
 
 ## Overview
 
-A ratcheting forward secrecy protocol that works in synchronous and asynchronous messaging environments.
+For developers implementing encrypted messaging protocols and durable key/session stores. This WPPConnect Team fork of [privacyresearchgroup/libsignal-protocol-typescript](https://github.com/privacyresearchgroup/libsignal-protocol-typescript) uses `@wppconnect/curve25519` as its curve implementation. It is not a standalone WhatsApp client.
 
-### PreKeys
+## Features
 
-This protocol uses a concept called 'PreKeys'. A PreKey is an ECPublicKey and an associated unique ID which are stored together by a server. PreKeys can also be signed.
+- Identity keys, registration IDs, signed prekeys and one-time prekeys.
+- Session establishment and encryption/decryption via `SessionBuilder` and `SessionCipher`.
 
-At install time, clients generate a single signed PreKey, as well as a large list of unsigned PreKeys, and transmit all of them to the server.
+## Getting started
 
-### Sessions
+Requires Node.js/npm. The manifest names `@wppconnect/libsignal-protocol`, but that name returned npm 404 during this review. Build the accessible source instead of relying on an unverified registry install:
 
-Signal Protocol is session-oriented. Clients establish a "session," which is then used for all subsequent encrypt/decrypt operations. There is no need to ever tear down a session once one has been established.
-
-Sessions are established in one of two ways:
-
-1. PreKeyBundles. A client that wishes to send a message to a recipient can establish a session by retrieving a PreKeyBundle for that recipient from the server.
-2. PreKeySignalMessages. A client can receive a PreKeySignalMessage from a recipient and use it to establish a session.
-
-### State
-
-An established session encapsulates a lot of state between two clients. That state is maintained in durable records which need to be kept for the life of the session.
-
-State is kept in the following places:
-
-- Identity State. Clients will need to maintain the state of their own identity key pair, as well as identity keys received from other clients.
-- PreKey State. Clients will need to maintain the state of their generated PreKeys.
-- Signed PreKey States. Clients will need to maintain the state of their signed PreKeys.
-- Session State. Clients will need to maintain the state of the sessions they have established.
-
-## Usage
-
-### Add the SDK to your project
-
-Install via npm:
-
-```
-npm install @wppconnect/libsignal-protocol
+```sh
+git clone https://github.com/wppconnect-team/libsignal-protocol.git
+cd libsignal-protocol
+npm ci
+npm run build
+node -e "const { KeyHelper } = require('./lib'); console.log(Number.isInteger(KeyHelper.generateRegistrationId()));"
 ```
 
-Or via yarn:
+The local example prints `true`. A complete integration must supply durable identity, prekey, signed-prekey and session storage before establishing a session.
 
-```
-yarn add @wppconnect/libsignal-protocol
-```
+## Configuration
 
-Now you can import classes and functions from the package:
+Implement the store contract shown in [storage-type.ts](src/__test__/storage-type.ts). Preserve identity trust decisions and session state; do not log or commit private keys. See the session examples and protocol specifications before designing persistence.
 
-```ts
-import {
-    KeyHelper,
-    SignedPublicPreKeyType,
-    SignalProtocolAddress,
-    SessionBuilder,
-    PreKeyType,
-    SessionCipher,
-    MessageType
-} from '@wppconnect/libsignal-protocol'
-```
+## Documentation
 
-Or, if you prefer a grouped import:
+- [Upstream usage guide](https://github.com/privacyresearchgroup/libsignal-protocol-typescript#usage)
+- [X3DH specification](https://signal.org/docs/specifications/x3dh/)
+- [Double Ratchet specification](https://signal.org/docs/specifications/doubleratchet/)
+- [Retained technical details and acknowledgments](documentation/readme-reference.md)
 
-```ts
-import * as libsignal from '@wppconnect/libsignal-protocol'
-```
+## WPPConnect ecosystem
 
-#### Install time
+| Project | Purpose | When to use it |
+| --- | --- | --- |
+| [WPPConnect/Curve25519](https://github.com/wppconnect-team/curve25519) | Expose Curve25519 operations through a function-based TypeScript API. | Use the curve functions needed by the Signal fork. |
 
-At install time, a signal client needs to generate its identity keys, registration id, and prekeys.
+## Support the project
 
-A signal client also needs to implement a storage interface that will manage loading and storing of identity, prekeys, signed prekeys, and session state. See [`src/__test__/storage-type.ts`] for an example.
+The WPPConnect contribution below supports maintenance of this fork within the ecosystem; it does not imply funding or endorsement of upstream maintainers.
 
-Example setup:
+WPPConnect is maintained by an open-source community. Your support helps fund maintenance, infrastructure, documentation, and the people working on the ecosystem.
 
-```ts
-const createID = async (name: string, store: SignalProtocolStore) => {
-  const registrationId = KeyHelper.generateRegistrationId()
-  storeSomewhereSafe(`registrationID`, registrationId)
+If WPPConnect helps your project or business, consider making a one-time contribution or becoming a recurring supporter.
 
-  const identityKeyPair = await KeyHelper.generateIdentityKeyPair()
-  storeSomewhereSafe('identityKey', identityKeyPair)
+**[Support WPPConnect on Open Collective](https://opencollective.com/wppconnect)**
 
-  const baseKeyId = makeKeyId()
-  const preKey = await KeyHelper.generatePreKey(baseKeyId)
-  store.storePreKey(`${baseKeyId}`, preKey.keyPair)
+Contributions are voluntary. See the official page for current financial information. You can also help with code, tests, documentation, translations and well-described issue reports.
 
-  const signedPreKeyId = makeKeyId()
-  const signedPreKey = await KeyHelper.generateSignedPreKey(identityKeyPair, signedPreKeyId)
-  store.storeSignedPreKey(signedPreKeyId, signedPreKey.keyPair)
+## Contributing
 
-  // Now register this with the server or directory so all users can see them.
-  // Implement your directory as needed.
+Contributions of code, tests, examples, documentation and translations are welcome. For larger changes, discuss the approach in an issue first. Include the project/runtime versions, a minimal reproduction and sanitized logs when reporting a problem. Update both `README.md` and `README.pt-BR.md` in the same change when installation, configuration, features, examples, licensing or funding changes.
 
-  const publicSignedPreKey: SignedPublicPreKeyType = {
-    keyId: signedPreKeyId,
-    publicKey: signedPreKey.keyPair.pubKey,
-    signature: signedPreKey.signature,
-  }
+After installing the development dependencies, use the repository checks relevant to your change:
 
-  const publicPreKey: PreKeyType = {
-    keyId: preKey.keyId,
-    publicKey: preKey.keyPair.pubKey,
-  }
-
-  directory.storeKeyBundle(name, {
-    registrationId,
-    identityPubKey: identityKeyPair.pubKey,
-    signedPreKey: publicSignedPreKey,
-    oneTimePreKeys: [publicPreKey],
-  })
-}
+```sh
+npm run build
+npm run lint
+npm test
 ```
 
-### Building a session
+Account-dependent examples and tests require separate validation with an authorized test account. Never attach credentials or session files to an issue.
 
-For complete usage examples, session building, encryption and decryption, see the [original README](https://github.com/privacyresearchgroup/libsignal-protocol-typescript#usage) and the Signal documentation: [X3DH](https://signal.org/docs/specifications/x3dh/) and [Double Ratchet](https://signal.org/docs/specifications/doubleratchet/).
+## Community and support
 
-## Elliptic Curve
+Use [repository issues](https://github.com/wppconnect-team/libsignal-protocol/issues) for reproducible bugs and feature proposals. For usage questions, join the community through the official channels:
 
-This fork uses [`@wppconnect/curve25519`](https://www.npmjs.com/package/@wppconnect/curve25519) as the default implementation for elliptic curve operations (X25519/Ed25519).
+- [Discord](https://discord.gg/JU5JGGKGNG)
+- [Telegram](https://t.me/wppconnect)
+- [YouTube](https://www.youtube.com/c/wppconnect)
+
+This project is independent and is not affiliated with or endorsed by WhatsApp or Meta. Follow applicable terms and obtain authorization for account and messaging operations.
 
 ## License
 
-This project is licensed under GPLv3, as in the original project.
+[GNU General Public License v3.0 only (GPL-3.0-only)](./LICENSE).
 
----
+Copyright 2020 Privacy Research, LLC. Original work and upstream authorship are retained.
 
-Forked and adapted from [privacyresearchgroup/libsignal-protocol-typescript](https://github.com/privacyresearchgroup/libsignal-protocol-typescript).
+The original legal document and existing copyright notices are preserved. Third-party components retain their own terms.
